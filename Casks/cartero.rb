@@ -5,7 +5,7 @@ cask "cartero" do
   sha256 arm:   "c74386a05f3c742fd1a4b699493bfdc79043f1887b28e8e79425cce05c7beff6",
          intel: "45de50c4e9b35153759ca0c1a4516970e677fe64a20d080092e8397bd02212e4"
   
-  url "https://github.com/danirod/cartero/releases/download/#{version}/Cartero-#{version}-macOS-#{arch}.dmg"
+  url "https://github.com/danirod/cartero/releases/download/v#{version}/Cartero-#{version}-macOS-#{arch}.dmg"
   name "Cartero"
   desc "Make HTTP requests and test APIs"
   homepage "https://cartero.danirod.es"
