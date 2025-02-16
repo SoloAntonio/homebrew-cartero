@@ -1,9 +1,9 @@
 cask "cartero" do
   arch arm: "arm64", intel: "x64"
 
-  version "0.1.4"
-  sha256 arm:   "b9f5f80d9d6381947139c697bb5a8f747a1d5c1fddaaf5101c3f23f28749a401",
-         intel: "8346b4faf0d54ee7f3074b79c411ac100d75d12054edb64505f8fd09b2073025"
+  version "0.1.5"
+  sha256 arm:   "3c6e7c1397e4d3479323b9776fb8a139d1709f2eb21680ab9e852ca244552feb",
+         intel: "47cb60f3bde2839ccfc27b51e5c8d147602035297d3a63c1cb808bb85dfe96df"
 
   url "https://github.com/danirod/cartero/releases/download/v#{version}/Cartero-#{version}-macOS-#{arch}.dmg"
   name "Cartero"
