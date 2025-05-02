@@ -1,9 +1,9 @@
 cask "cartero" do
   arch arm: "arm64", intel: "x64"
 
-  version "0.2.1"
-  sha256 arm:   "13200b4569e9e953436c46f6b4015dbee382b20b4d944d26d831a42df6188f79",
-         intel: "2ea892d30c66a0ef5e0d190b048ca91c3a5b1abce9773ed1bc926bbe57f736ce"
+  version "0.2.2"
+  sha256 arm:   "fae6e3f90b85be2ef83206bca381d0f885f2b862340d7784ff3084ee407d0726",
+         intel: "a61c87828d1786b928ee0148a3a2d2b188c8cc9202d4745f475e437452a4b45f"
 
   url "https://github.com/danirod/cartero/releases/download/v#{version}/Cartero-#{version}-macOS-#{arch}.dmg"
   name "Cartero"
@@ -17,7 +17,7 @@ cask "cartero" do
 
   auto_updates true
 
-  depends_on macos: ">= :mojave"
+  depends_on macos: ">= :big_sur"
 
   app "Cartero.app"
 
