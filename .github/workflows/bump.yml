@@ -33,3 +33,5 @@ jobs:
           revision: ${{github.sha}}
           # Optional, if don't want to check for already open PRs
           force: false # true
+          # Need to set this input if want to use `brew livecheck`
+          livecheck: true
