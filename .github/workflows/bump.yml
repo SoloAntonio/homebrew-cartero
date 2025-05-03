@@ -26,8 +26,6 @@ jobs:
           tap: cartero
           # URL
           tap_url: git@github.com:SoloAntonio/homebrew-cartero.git
-          # Formula name, required
-          formula: cartero
           # Optional, will be determined automatically
           tag: ${{github.ref}}
           # Optional, will be determined automatically
