@@ -23,7 +23,7 @@ jobs:
           # Optional, use the origin repository instead of forking
           no_fork: false
           # Optional, defaults to homebrew/core
-          tap: SoloAntonio/homebrew-cartero
+          tap: cartero
           # URL
           tap_url: git@github.com:SoloAntonio/homebrew-cartero.git
           # Formula name, required
