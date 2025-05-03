@@ -25,7 +25,7 @@ jobs:
           # Optional, defaults to homebrew/core
           tap: SoloAntonio/cartero
           # URL
-          tap_url: git@github.com:SoloAntonio/homebrew-cartero.git
+          tap_url: https://github.com/SoloAntonio/homebrew-cartero.git
           formula: cartero
           # Optional, will be determined automatically
           tag: ${{github.ref}}
