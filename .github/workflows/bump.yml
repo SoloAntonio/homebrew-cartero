@@ -24,6 +24,8 @@ jobs:
           no_fork: false
           # Optional, defaults to homebrew/core
           tap: SoloAntonio/homebrew-cartero
+          # URL
+          tap_url: git@github.com:SoloAntonio/homebrew-cartero.git
           # Formula name, required
           formula: cartero
           # Optional, will be determined automatically
