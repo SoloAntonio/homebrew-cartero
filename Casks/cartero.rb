@@ -11,7 +11,7 @@ cask "cartero" do
   homepage "https://cartero.danirod.es"
 
   livecheck do
-    url :url
+    url "https://github.com/danirod/cartero"
     strategy :github_latest
   end
 
