@@ -6,7 +6,7 @@ cask "cartero" do
          intel: "a61c87828d1786b928ee0148a3a7d2b188c8cc9202d4745f475e437452a4b45f"
 
   url "https://github.com/danirod/cartero/releases/download/v#{version}/Cartero-#{version}-macOS-#{arch}.dmg",
-        verified: "github.com/danirod/cartero/"
+      verified: "github.com/danirod/cartero/"
   name "Cartero"
   desc "Make HTTP requests and test APIs"
   homepage "https://cartero.danirod.es/"
