@@ -1,8 +1,8 @@
 name: Bump Cartero 
 on:
   schedule:
-    # Every 8 hours
-    - cron: '*/5 * * * *'
+    # Every 24 hours
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:
@@ -26,6 +26,7 @@ jobs:
           tap: SoloAntonio/cartero
           # URL
           tap_url: https://github.com/SoloAntonio/homebrew-cartero.git
+          #Cask
           cask: cartero
           # Optional, will be determined automatically
           tag: ${{github.ref}}
