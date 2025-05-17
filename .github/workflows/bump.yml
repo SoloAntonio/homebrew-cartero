@@ -16,10 +16,7 @@ jobs:
         # Optional, will create tap repo fork in organization
         org: ORG
         # Bump all outdated casks in this tap
-        tap: SoloAntonio/cartero4
-        # Optional, defaults to homebrew/core
-        # URL
-        tap_url: https://github.com/SoloAntonio/homebrew-cartero.git
+        tap: SoloAntonio/cartero
         # Bump only these casks if outdated
         cask: cartero
         # Optional, if don't want to check for already open PRs
