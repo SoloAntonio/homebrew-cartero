@@ -2,8 +2,8 @@ name: Auto Bump Cask Versions
 
 on:
   schedule:
-    - cron: '0 12 * * *'  # Run daily at 12:00 UTC
-  workflow_dispatch:  # Allow manual triggering
+    - cron: '0 12 * * *'
+  workflow_dispatch:
     inputs:
       tap_name:
         description: 'Tap name (e.g., SoloAntonio/cartero)'
@@ -29,141 +29,92 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Homebrew
+      - name: Ensure jq is available
+        run: brew install jq
+
+      - name: Set up Homebrew and tap
         run: |
-          brew update
           echo "Using tap: ${{ env.TAP_NAME }} (${{ env.TAP_URL }})"
+          brew update
           brew tap "${{ env.TAP_NAME }}" "${{ env.TAP_URL }}"
-          
-      - name: Setup GitHub CLI
-        run: |
-          echo "${{ secrets.GH_TOKEN }}" | gh auth login --with-token
-      
+
+      - name: Authenticate GitHub CLI
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: echo "$GH_TOKEN" | gh auth login --with-token
+
       - name: Find casks to check
         id: find_casks
         run: |
-          # Configure git
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          
-          # Find all cask files or use specified casks if provided
+
           if [ -n "${{ github.event.inputs.casks }}" ]; then
-            # Split space-separated cask names into array
-            CASKS_TO_CHECK=$(echo "${{ github.event.inputs.casks }}" | tr ' ' '\n')
             echo "Checking specified casks: ${{ github.event.inputs.casks }}"
+            echo "casks=$(echo '${{ github.event.inputs.casks }}' | tr ' ' '\n' | jq -R . | jq -cs .)" >> $GITHUB_OUTPUT
           else
-            CASKS_TO_CHECK=$(find Casks -name "*.rb" -exec basename {} .rb \;)
-            echo "Found casks to check: $CASKS_TO_CHECK"
+            CASKS=$(find Casks -name "*.rb" -exec basename {} .rb \;)
+            echo "Found casks to check: $CASKS"
+            echo "casks=$(echo "$CASKS" | jq -R . | jq -cs .)" >> $GITHUB_OUTPUT
           fi
-          
-          # Create a JSON array of casks
-          CASKS_JSON=$(echo "$CASKS_TO_CHECK" | jq -R . | jq -s .)
-          echo "casks=$CASKS_JSON" >> $GITHUB_OUTPUT
 
       - name: Process casks
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          CASKS: ${{ steps.find_casks.outputs.casks }}
         run: |
-          # Get the list of casks
-          CASKS='${{ steps.find_casks.outputs.casks }}'
-          
-          # Process each cask
-          echo "$CASKS" | jq -c '.[]' | while read -r CASK_NAME; do
-            # Remove quotes from cask name
-            CASK_NAME=$(echo $CASK_NAME | tr -d '"')
-            echo "Processing cask: $CASK_NAME"
-            
-            # Get current version from cask
-            CURRENT_VERSION=$(grep -m 1 'version "' "Casks/$CASK_NAME.rb" | awk -F'"' '{print $2}')
-            echo "Current version: $CURRENT_VERSION"
-            
-            # Run livecheck to get latest version
-            LIVECHECK_OUTPUT=$(brew livecheck --cask --quiet --newer-only --full-name --json "$CASK_NAME")
-            
-            # Check if output is empty array or null
-            if [ "$LIVECHECK_OUTPUT" = "[]" ] || [ -z "$LIVECHECK_OUTPUT" ]; then
-              echo "No updates found for $CASK_NAME"
-              continue
-            fi
-            
-            # Extract latest version from JSON output
-            LATEST_VERSION=$(echo "$LIVECHECK_OUTPUT" | jq -r '.[0].version.latest')
-            echo "Latest version: $LATEST_VERSION"
-            
-            # Skip if no new version
-            if [ -z "$LATEST_VERSION" ]; then
+          echo "$CASKS" | jq -r '.[]' | while read -r CASK_NAME; do
+            echo "Processing: $CASK_NAME"
+            CASK_PATH="Casks/$CASK_NAME.rb"
+
+            CURRENT_VERSION=$(grep -m 1 'version "' "$CASK_PATH" | awk -F'"' '{print $2}')
+            LIVECHECK_JSON=$(brew livecheck --cask --quiet --newer-only --full-name --json "$CASK_NAME")
+
+            LATEST_VERSION=$(echo "$LIVECHECK_JSON" | jq -r '.[0].version.latest // empty')
+
+            if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" == "$CURRENT_VERSION" ]; then
               echo "No update needed for $CASK_NAME"
               continue
             fi
-            
-            echo "Update needed for $CASK_NAME: $CURRENT_VERSION -> $LATEST_VERSION"
-            
-            # Create a new branch
-            BRANCH_NAME="bump-$CASK_NAME-$LATEST_VERSION"
-            git checkout -b "$BRANCH_NAME" || git checkout "$BRANCH_NAME"
-            
-            # Create backup of original file
-            cp "Casks/$CASK_NAME.rb" "Casks/$CASK_NAME.rb.bak"
-            
-            # Download new version to get SHA256
-            echo "Fetching SHA256 checksums..."
-            brew fetch --cask "$CASK_NAME"
-            FETCH_OUTPUT=$(brew fetch --cask "$CASK_NAME" --arch=all 2>&1)
-            
-            # Extract SHA256 values
-            ARM_SHA=$(echo "$FETCH_OUTPUT" | grep "arm64:" | awk '{print $3}')
-            INTEL_SHA=$(echo "$FETCH_OUTPUT" | grep "x86_64:" | awk '{print $3}')
-            
-            echo "ARM SHA: $ARM_SHA"
-            echo "Intel SHA: $INTEL_SHA"
-            
-            # Update version and SHA256 in cask file
-            sed -i '' "s/version \".*\"/version \"$LATEST_VERSION\"/" "Casks/$CASK_NAME.rb"
-            sed -i '' "s/sha256 arm:   \".*\",/sha256 arm:   \"$ARM_SHA\",/" "Casks/$CASK_NAME.rb"
-            sed -i '' "s/intel: \".*\"/intel: \"$INTEL_SHA\"/" "Casks/$CASK_NAME.rb"
-            
-            # Test installation
-            brew uninstall --cask "$CASK_NAME" || true
-            
-            if brew install --cask "$CASK_NAME"; then
-              echo "Installation successful for $CASK_NAME"
-              
-              # Commit and push changes
-              git add "Casks/$CASK_NAME.rb"
-              git commit -m "$CASK_NAME: Update to version $LATEST_VERSION"
-              git push origin "$BRANCH_NAME"
-              
-              # Create PR using GitHub CLI
-              PR_BODY="Auto-updated by GitHub Actions.
 
-- Updated $CASK_NAME from $CURRENT_VERSION to $LATEST_VERSION
-- Updated SHA256 checksums for both architectures
-- Installation tested successfully"
-              
-              # Create PR and capture PR number
+            BRANCH="bump-$CASK_NAME-$LATEST_VERSION"
+            git checkout -b "$BRANCH" || git checkout "$BRANCH"
+
+            cp "$CASK_PATH" "$CASK_PATH.bak"
+
+            brew fetch --cask "$CASK_NAME" --force --quiet > fetch.log 2>&1
+            ARM_SHA=$(grep -A1 "arm64_monterey" fetch.log | grep "SHA256:" | awk '{print $2}')
+            INTEL_SHA=$(grep -A1 "x86_64_monterey" fetch.log | grep "SHA256:" | awk '{print $2}')
+
+            sed -i '' "s/version \".*\"/version \"$LATEST_VERSION\"/" "$CASK_PATH"
+            sed -i '' "s/sha256 arm: *\".*\"/sha256 arm:   \"$ARM_SHA\"/" "$CASK_PATH"
+            sed -i '' "s/intel: *\".*\"/intel: \"$INTEL_SHA\"/" "$CASK_PATH"
+
+            brew uninstall --cask "$CASK_NAME" || true
+            if brew install --cask "$CASK_NAME"; then
+              git add "$CASK_PATH"
+              git commit -m "$CASK_NAME: Update to version $LATEST_VERSION"
+              git push origin "$BRANCH"
+
+              PR_BODY="Auto-bumped $CASK_NAME to $LATEST_VERSION"
               PR_URL=$(gh pr create --title "$CASK_NAME: Update to version $LATEST_VERSION" \
-                          --body "$PR_BODY" \
-                          --base main \
-                          --head "$BRANCH_NAME")
-              PR_NUMBER=$(echo $PR_URL | grep -o '[0-9]*$')
-              
-              echo "Created PR #$PR_NUMBER: $PR_URL"
-              
-              # Check if PR can be merged automatically
-              if gh pr view $PR_NUMBER --json mergeable | grep -q '"mergeable": true'; then
-                echo "PR is mergeable, auto-merging..."
-                gh pr merge $PR_NUMBER --auto --merge
+                                    --body "$PR_BODY" \
+                                    --base main \
+                                    --head "$BRANCH")
+              echo "PR created: $PR_URL"
+
+              PR_NUMBER=$(basename "$PR_URL")
+              if gh pr view "$PR_NUMBER" --json mergeable | grep -q '"mergeable": true'; then
+                gh pr merge "$PR_NUMBER" --auto --merge
               else
-                echo "PR has conflicts and cannot be auto-merged"
+                echo "PR not auto-mergeable"
               fi
             else
-              echo "Installation failed for $CASK_NAME, reverting changes"
-              
-              # Restore from backup
-              mv "Casks/$CASK_NAME.rb.bak" "Casks/$CASK_NAME.rb"
+              echo "Install failed for $CASK_NAME. Reverting..."
+              mv "$CASK_PATH.bak" "$CASK_PATH"
               git checkout main
+              git branch -D "$BRANCH"
             fi
-            
-            # Return to main branch for next cask
             git checkout main
           done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          
