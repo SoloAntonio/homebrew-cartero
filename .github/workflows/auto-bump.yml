@@ -37,6 +37,7 @@ jobs:
       - name: Setup Homebrew tap
         run: |
           echo "Using tap: ${{ env.TAP_NAME }} (${{ env.TAP_URL }})"
+          brew update
           brew tap "${{ env.TAP_NAME }}" "${{ env.TAP_URL }}"
 
       - name: Authenticate GitHub CLI
@@ -44,7 +45,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           echo "$GH_TOKEN" | gh auth login --with-token
-
       - name: Find casks to check
         id: find_casks
         run: |
@@ -125,6 +125,7 @@ jobs:
               fi
             else
               echo "Install failed for $CASK_NAME. Reverting changes..."
+
               mv "$CASK_PATH.bak" "$CASK_PATH"
               git checkout main
               git branch -D "$BRANCH"
@@ -134,3 +135,4 @@ jobs:
             git checkout main
             git branch -D "$BRANCH" || true
           done
+
