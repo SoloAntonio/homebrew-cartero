@@ -1,0 +1,84 @@
+name: Auto Bump Cask Version
+
+on:
+  schedule:
+    - cron: '0 12 * * *'  # Run daily at 12:00 UTC
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  auto-bump:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Homebrew
+        run: |
+          brew update
+          brew tap SoloAntonio/cartero https://github.com/SoloAntonio/homebrew-cartero
+
+      - name: Run livecheck and check for updates
+        id: livecheck
+        run: |
+          # Get current version from cask
+          CURRENT_VERSION=$(grep -m 1 'version "' Casks/cartero.rb | awk -F'"' '{print $2}')
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Run livecheck to get latest version
+          LIVECHECK_OUTPUT=$(brew livecheck --tap=SoloAntonio/cartero --json cartero)
+          LATEST_VERSION=$(echo "$LIVECHECK_OUTPUT" | jq -r '.[0].version.latest')
+          echo "Latest version: $LATEST_VERSION"
+          
+          # Compare versions
+          if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ] && [ -n "$LATEST_VERSION" ]; then
+            echo "new_version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+            echo "update_needed=true" >> $GITHUB_OUTPUT
+            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "No update needed"
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update cask if needed
+        if: steps.livecheck.outputs.update_needed == 'true'
+        run: |
+          NEW_VERSION=${{ steps.livecheck.outputs.new_version }}
+          echo "Updating to version $NEW_VERSION"
+          
+          # Create a new branch
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          BRANCH_NAME="bump-cartero-$NEW_VERSION"
+          git checkout -b $BRANCH_NAME
+          
+          # Download new version to get SHA256
+          brew fetch --cask cartero
+          
+          # Get SHA256 for both architectures
+          ARM_SHA=$(brew fetch --cask --arch=arm64 cartero 2>&1 | grep "SHA256:" | awk '{print $2}')
+          INTEL_SHA=$(brew fetch --cask --arch=x86_64 cartero 2>&1 | grep "SHA256:" | awk '{print $2}')
+          
+          # Update version and SHA256 in cask file
+          sed -i '' "s/version \".*\"/version \"$NEW_VERSION\"/" Casks/cartero.rb
+          sed -i '' "s/sha256 arm:   \".*\",/sha256 arm:   \"$ARM_SHA\",/" Casks/cartero.rb
+          sed -i '' "s/intel: \".*\"/intel: \"$INTEL_SHA\"/" Casks/cartero.rb
+          
+          # Commit and push changes
+          git add Casks/cartero.rb
+          git commit -m "cartero: Update to version $NEW_VERSION"
+          git push origin $BRANCH_NAME
+
+      - name: Create Pull Request
+        if: steps.livecheck.outputs.update_needed == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          commit-message: "cartero: Update to version ${{ steps.livecheck.outputs.new_version }}"
+          title: "cartero: Update to version ${{ steps.livecheck.outputs.new_version }}"
+          body: |
+            Auto-updated by GitHub Actions.
+            
+            - Updated cartero from ${{ steps.livecheck.outputs.current_version }} to ${{ steps.livecheck.outputs.new_version }}
+            - Updated SHA256 checksums for both architectures
+          branch: bump-cartero-${{ steps.livecheck.outputs.new_version }}
+          base: main

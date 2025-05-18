@@ -44,7 +44,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           echo "$GH_TOKEN"
-
       - name: Find casks to check
         id: find_casks
         run: |
