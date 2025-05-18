@@ -89,13 +89,24 @@ jobs:
 
             cp "$CASK_PATH" "$CASK_PATH.bak"
 
-            # Fetch info including checksums in JSON
-            FETCH_JSON=$(brew fetch --cask --force --json=v2 "$CASK_NAME")
-            ARM_SHA=$(echo "$FETCH_JSON" | jq -r '.casks[0].artifacts[] | select(.arm != null) | .sha256')
-            INTEL_SHA=$(echo "$FETCH_JSON" | jq -r '.casks[0].artifacts[] | select(.intel != null) | .sha256')
+            # Fetch and capture SHA for ARM (native architecture on macos-latest)
+            echo "Fetching cask for ARM..."
+            ARM_FETCH=$(brew fetch --cask --force "$CASK_NAME" 2>&1)
+            ARM_SHA=$(echo "$ARM_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
+            echo "ARM SHA256: $ARM_SHA"
 
-            echo "New ARM SHA256: $ARM_SHA"
-            echo "New INTEL SHA256: $INTEL_SHA"
+            # Fetch and capture SHA for Intel using Rosetta
+            echo "Fetching cask for Intel (Rosetta)..."
+            INTEL_FETCH=$(arch -x86_64 brew fetch --cask --force "$CASK_NAME" 2>&1)
+            INTEL_SHA=$(echo "$INTEL_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
+            echo "Intel SHA256: $INTEL_SHA"
+
+            # Fallback if architecture-specific SHAs are not defined
+            if [ -z "$ARM_SHA" ] || [ -z "$INTEL_SHA" ]; then
+              UNIVERSAL_SHA=${ARM_SHA:-$INTEL_SHA}
+              ARM_SHA=$UNIVERSAL_SHA
+              INTEL_SHA=$UNIVERSAL_SHA
+            fi
 
             # Update version and checksums in cask file - sed assumes specific format, adjust as needed
             sed -i '' "s/^version \".*\"/version \"$LATEST_VERSION\"/" "$CASK_PATH"
@@ -134,4 +145,3 @@ jobs:
             git checkout main
             git branch -D "$BRANCH" || true
           done
-
