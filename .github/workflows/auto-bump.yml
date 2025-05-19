@@ -95,14 +95,14 @@ jobs:
             cp "$CASK_PATH" "$CASK_PATH.bak"
 
             echo "Fetching ARM..."
-            if ! ARM_FETCH=$(brew fetch --cask --file "$CASK_PATH" --force --quiet 2>&1); then
+            if ! ARM_FETCH=$(brew fetch --cask --file "$CASK_PATH" 2>&1); then
               echo "ARM fetch failed for $CASK_PATH"
               continue
             fi
             ARM_SHA=$(echo "$ARM_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
 
             echo "Fetching Intel (Rosetta)..."
-            if ! INTEL_FETCH=$(arch -x86_64 brew fetch --cask --file "$CASK_PATH" --force --quiet 2>&1); then
+            if ! INTEL_FETCH=$(arch -x86_64 brew fetch --cask --file "$CASK_PATH" 2>&1); then
               echo "Intel fetch failed for $CASK_PATH"
               continue
             fi
