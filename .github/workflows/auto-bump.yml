@@ -123,7 +123,7 @@ jobs:
 
             # Replace the entire SHA256 section (2 lines)
             sed -i '' "${SHA_LINE},$(($SHA_LINE+1))c\\
-$NEW_SHA_LINE" "$CASK_PATH"
+            $NEW_SHA_LINE" "$CASK_PATH"
 
             if brew install --cask "$CASK_NAME"; then
               git add "$CASK_PATH"
