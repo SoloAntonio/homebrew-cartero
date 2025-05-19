@@ -87,11 +87,13 @@ jobs:
             echo "Fetching cask for ARM..."
             ARM_FETCH=$(brew fetch --cask --force "$CASK_NAME" 2>&1)
             ARM_SHA=$(echo "$ARM_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
+            echo $ARM_FETCH
 
             # Fetch and capture SHA for Intel using Rosetta
             echo "Fetching cask for Intel (Rosetta)..."
             INTEL_FETCH=$(arch -x86_64 brew fetch --cask --force "$CASK_NAME" 2>&1)
             INTEL_SHA=$(echo "$INTEL_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
+            echo $INTEL_FETCH
 
             # Fallback if architecture-specific SHAs are not defined
             if [ -z "$ARM_SHA" ] || [ -z "$INTEL_SHA" ]; then
@@ -100,13 +102,18 @@ jobs:
               INTEL_SHA=$UNIVERSAL_SHA
             fi
 
-            # Update version and checksums in cask file
+            # Update version
             sed -i '' "s/version \"[^\"]*\"/version \"$LATEST_VERSION\"/" "$CASK_PATH"
 
-            # Find the sha256 line and update both ARM and Intel values
-            SHA_LINE=$(grep -n "sha256 arm:" "$CASK_PATH" | cut -d: -f1)
-            sed -i '' "${SHA_LINE}s/arm:   \"[^\"]*\"/arm:   \"$ARM_SHA\"/" "$CASK_PATH"
-            sed -i '' "${SHA_LINE}s/intel: \"[^\"]*\"/intel: \"$INTEL_SHA\"/" "$CASK_PATH"
+            # Extract line number for SHA256 line
+            SHA_LINE=$(grep -n "sha256" "$CASK_PATH" | cut -d: -f1)
+
+            # Create a new SHA256 line with updated values
+            NEW_SHA_LINE="  sha256 arm:   \"$ARM_SHA\",\\n         intel: \"$INTEL_SHA\""
+
+            # Replace the entire SHA256 section (2 lines)
+            sed -i '' "${SHA_LINE},$(($SHA_LINE+1))c\\
+            $NEW_SHA_LINE" "$CASK_PATH"
 
             if brew install --cask "$CASK_NAME"; then
               git add "$CASK_PATH"
