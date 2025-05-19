@@ -109,9 +109,11 @@ jobs:
             fi
 
             # Update version and checksums in cask file - sed assumes specific format, adjust as needed
-            sed -i '' "s/^version \".*\"/version \"$LATEST_VERSION\"/" "$CASK_PATH"
-            sed -i '' "s/sha256 arm: *\"[^\"]*\"/sha256 arm:   \"$ARM_SHA\"/" "$CASK_PATH"
-            sed -i '' "s/sha256 intel: *\"[^\"]*\"/sha256 intel: \"$INTEL_SHA\"/" "$CASK_PATH"
+            sed -i '' -E \
+              -e "s/^version[[:space:]]+\"[^\"]+\"/version \"$LATEST_VERSION\"/" \
+              -e "s/sha256[[:space:]]+arm:[[:space:]]+\"[^\"]+\"/sha256 arm:   \"$ARM_SHA\"/" \
+              -e "s/sha256[[:space:]]+intel:[[:space:]]+\"[^\"]+\"/sha256 intel: \"$INTEL_SHA\"/" \
+              "$CASK_PATH"
 
             if brew install --cask "$CASK_NAME"; then
               git add "$CASK_PATH"
