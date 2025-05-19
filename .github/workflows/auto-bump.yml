@@ -29,15 +29,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          brew update
-
       - name: Setup Homebrew tap
         run: |
           echo "Using tap: ${{ env.TAP_NAME }} (${{ env.TAP_URL }})"
-          brew update
           brew tap "${{ env.TAP_NAME }}" "${{ env.TAP_URL }}"
+          brew developer on
 
       - name: Authenticate GitHub CLI
         env:
@@ -147,4 +143,3 @@ jobs:
             git checkout main
             git branch -D "$BRANCH" || true
           done
-
