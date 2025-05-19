@@ -80,9 +80,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail  # Enable strict mode
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-
           echo "$CASKS" | jq -r '.[]' > cask_list.txt
 
           while IFS= read -r CASK_NAME; do
