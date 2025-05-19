@@ -147,10 +147,10 @@ jobs:
               PR_NUMBER=$(basename "$PR_URL")
               if gh pr view "$PR_NUMBER" --json mergeable | jq -e '.mergeable == true' >/dev/null; then
                 echo "Auto-merging PR #$PR_NUMBER"
-                gh pr merge "$PR_NUMBER" --admin --merge --base main
+                gh pr merge "$PR_NUMBER" --admin --merge
               else
                 echo "PR #$PR_NUMBER is not auto-mergeable, attempting admin merge with rebase"
-                gh pr merge "$PR_NUMBER" --admin --rebase --base main
+                gh pr merge "$PR_NUMBER" --admin --rebase
               fi
 
             else
