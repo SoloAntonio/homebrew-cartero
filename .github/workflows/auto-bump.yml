@@ -95,8 +95,8 @@ jobs:
             cp "$CASK_PATH" "$CASK_PATH.bak"
 
             # Extract first url line
-            URL_LINE=$(grep -m 1 '^url "' "$CASK_PATH")
-
+            URL_LINE=$(grep -m 1 '^[[:space:]]*url "' "$CASK_PATH") 
+            
             # Extract the URL inside the quotes, remove trailing comma
             URL_TEMPLATE=$(echo "$URL_LINE" | sed -E 's/^[[:space:]]*url "([^"]+)",$/\1/')
 
