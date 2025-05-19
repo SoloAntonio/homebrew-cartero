@@ -8,7 +8,7 @@ on:
       tap_name:
         description: 'Tap name (e.g., SoloAntonio/cartero)'
         required: false
-        default: 'SoloAntonio/cartero'
+        default: 'soloantonio/cartero'
       tap_url:
         description: 'Tap URL'
         required: false
@@ -19,7 +19,7 @@ on:
         default: ''
 
 env:
-  TAP_NAME: ${{ github.event.inputs.tap_name || 'SoloAntonio/cartero' }}
+  TAP_NAME: ${{ github.event.inputs.tap_name || 'soloantonio/cartero' }}
   TAP_URL: ${{ github.event.inputs.tap_url || 'https://github.com/SoloAntonio/homebrew-cartero' }}
 
 jobs:
@@ -35,7 +35,6 @@ jobs:
       - name: Setup Homebrew tap
         run: |
           echo "Using tap: ${{ env.TAP_NAME }} (${{ env.TAP_URL }})"
-          brew untap ${{ env.TAP_NAME }} || true
           brew tap ${{ env.TAP_NAME }} ${{ env.TAP_URL }}
           brew update
           brew developer on
@@ -113,7 +112,7 @@ jobs:
             sed -i '' -E "/sha256 arm:/,/sha256 intel:/c\\
             sha256 arm:   \"$ARM_SHA\",\\\n  sha256 intel: \"$INTEL_SHA\"" "$CASK_PATH"
 
-            if brew install --cask "$CASK_NAME" && arch -x86_64 brew install --cask "$CASK_NAME"; then
+            if brew install --cask "./$CASK_PATH"; then
               git add "$CASK_PATH"
               git commit -m "$CASK_NAME: Update to version $LATEST_VERSION"
               git push -u origin "$BRANCH"
