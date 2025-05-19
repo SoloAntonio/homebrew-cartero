@@ -87,13 +87,13 @@ jobs:
             echo "Fetching cask for ARM..."
             ARM_FETCH=$(brew fetch --cask --force "$CASK_NAME" 2>&1)
             ARM_SHA=$(echo "$ARM_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
-            echo $ARM_FETCH
+            echo $ARM_SHA
 
             # Fetch and capture SHA for Intel using Rosetta
             echo "Fetching cask for Intel (Rosetta)..."
             INTEL_FETCH=$(arch -x86_64 brew fetch --cask --force "$CASK_NAME" 2>&1)
             INTEL_SHA=$(echo "$INTEL_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
-            echo $INTEL_FETCH
+            echo $INTEL_SHA
 
             # Fallback if architecture-specific SHAs are not defined
             if [ -z "$ARM_SHA" ] || [ -z "$INTEL_SHA" ]; then
