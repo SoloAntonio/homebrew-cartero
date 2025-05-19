@@ -116,4 +116,37 @@ jobs:
 
             sed -i '' -E "s/^[[:space:]]*version \"[^\"]+\"/  version \"$LATEST_VERSION\"/" "$CASK_PATH"
             sed -i '' -E "s/^(  sha256 arm:[[:space:]]+\")[a-f0-9]+\"/\1$ARM_SHA\"/" "$CASK_PATH"
-            sed
+            sed -i '' -E "s/^(         intel:[[:space:]]+\")[a-f0-9]+\"/\1$INTEL_SHA\"/" "$CASK_PATH"
+
+            echo "Installing local cask to verify: $CASK_NAME"
+            if brew install --cask "./$CASK_PATH"; then
+              git add "$CASK_PATH"
+              git commit -m "$CASK_NAME: Update to version $LATEST_VERSION"
+              git push -u origin "$BRANCH"
+
+              PR_BODY="Auto-bumped $CASK_NAME to $LATEST_VERSION"
+              PR_URL=$(gh pr create --title "$CASK_NAME: Update to version $LATEST_VERSION" \
+                                    --body "$PR_BODY" \
+                                    --base main \
+                                    --head "$BRANCH")
+
+              echo "PR created: $PR_URL"
+
+              PR_NUMBER=$(basename "$PR_URL")
+              if gh pr view "$PR_NUMBER" --json mergeable | jq -e '.mergeable == true' >/dev/null; then
+                echo "Auto-merging PR #$PR_NUMBER"
+                gh pr merge "$PR_NUMBER" --auto --merge
+              else
+                echo "PR #$PR_NUMBER is not auto-mergeable"
+              fi
+            else
+              echo "Install failed. Reverting changes."
+              mv "$CASK_PATH.bak" "$CASK_PATH"
+              git checkout main
+              git branch -D "$BRANCH" || true
+              continue
+            fi
+
+            git checkout main
+            git branch -D "$BRANCH" || true
+          done < cask_list.txt
