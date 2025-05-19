@@ -87,13 +87,11 @@ jobs:
             echo "Fetching cask for ARM..."
             ARM_FETCH=$(brew fetch --cask --force "$CASK_NAME" 2>&1)
             ARM_SHA=$(echo "$ARM_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
-            echo "ARM SHA256: $ARM_SHA"
 
             # Fetch and capture SHA for Intel using Rosetta
             echo "Fetching cask for Intel (Rosetta)..."
             INTEL_FETCH=$(arch -x86_64 brew fetch --cask --force "$CASK_NAME" 2>&1)
             INTEL_SHA=$(echo "$INTEL_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
-            echo "Intel SHA256: $INTEL_SHA"
 
             # Fallback if architecture-specific SHAs are not defined
             if [ -z "$ARM_SHA" ] || [ -z "$INTEL_SHA" ]; then
@@ -102,11 +100,11 @@ jobs:
               INTEL_SHA=$UNIVERSAL_SHA
             fi
 
-            # Update version and checksums in cask file - sed assumes specific format, adjust as needed
+            # Update version and checksums in cask file
             sed -i '' -E \
               -e "s/version \"[^\"]+\"/version \"$LATEST_VERSION\"/" \
-              -e "s/sha256 arm:[[:space:]]*\"[^\"]+\"/sha256 arm:   \"$ARM_SHA\"/" \
-              -e "s/intel:[[:space:]]*\"[^\"]+\"/intel: \"$INTEL_SHA\"/" \
+              -e "s/(sha256 arm:[[:space:]]*\")[^\"]+(\",)/\1$ARM_SHA\2/" \
+              -e "s/(intel:[[:space:]]*\")[^\"]+(\")$/\1$INTEL_SHA\2/" \
               "$CASK_PATH"
 
             if brew install --cask "$CASK_NAME"; then
