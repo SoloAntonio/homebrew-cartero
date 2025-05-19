@@ -90,6 +90,10 @@ jobs:
               continue
             fi
 
+            BRANCH="bump-$CASK_NAME-$LATEST_VERSION"
+            git checkout -B "$BRANCH"
+            cp "$CASK_PATH" "$CASK_PATH.bak"
+
             # Extract first url line
             URL_LINE=$(grep -m 1 '^url "' "$CASK_PATH")
 
@@ -125,10 +129,6 @@ jobs:
             # Update sha256 checksums for arm and intel
             sed -i '' -E "s/^(  sha256 arm:[[:space:]]+\")[a-f0-9]+\"/\1$ARM_SHA\"/" "$CASK_PATH"
             sed -i '' -E "s/^(         intel:[[:space:]]+\")[a-f0-9]+\"/\1$INTEL_SHA\"/" "$CASK_PATH"
-
-            BRANCH="bump-$CASK_NAME-$LATEST_VERSION"
-            git checkout -B "$BRANCH"
-            cp "$CASK_PATH" "$CASK_PATH.bak"
 
             echo "Installing local cask to verify: $CASK_PATH"
             if brew install --cask "./$CASK_PATH"; then
