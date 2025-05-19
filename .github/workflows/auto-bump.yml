@@ -38,6 +38,16 @@ jobs:
           brew tap "${{ env.TAP_NAME }}" "${{ env.TAP_URL }}"
           brew developer on
 
+      - name: Authenticate GitHub CLI
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::GH_TOKEN is not set"
+            exit 1
+          fi
+          gh auth status || gh auth login --with-token <<< "$GH_TOKEN"
+
       - name: Find casks to check
         id: find_casks
         run: |
@@ -87,13 +97,13 @@ jobs:
             echo "Fetching cask for ARM..."
             ARM_FETCH=$(brew fetch --cask --force "$CASK_NAME" 2>&1)
             ARM_SHA=$(echo "$ARM_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
-            echo $ARM_SHA
+            echo "$ARM_SHA"
 
             # Fetch and capture SHA for Intel using Rosetta
             echo "Fetching cask for Intel (Rosetta)..."
             INTEL_FETCH=$(arch -x86_64 brew fetch --cask --force "$CASK_NAME" 2>&1)
             INTEL_SHA=$(echo "$INTEL_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
-            echo $INTEL_SHA
+            echo "$INTEL_SHA"
 
             # Fallback if architecture-specific SHAs are not defined
             if [ -z "$ARM_SHA" ] || [ -z "$INTEL_SHA" ]; then
@@ -112,7 +122,8 @@ jobs:
             NEW_SHA_LINE="  sha256 arm:   \"$ARM_SHA\",\\n         intel: \"$INTEL_SHA\""
 
             # Replace the entire SHA256 section (2 lines)
-            sed -i '' "${SHA_LINE},$(($SHA_LINE+1))c\\$NEW_SHA_LINE" "$CASK_PATH"
+            sed -i '' "${SHA_LINE},$(($SHA_LINE+1))c\\
+$NEW_SHA_LINE" "$CASK_PATH"
 
             if brew install --cask "$CASK_NAME"; then
               git add "$CASK_PATH"
@@ -146,5 +157,3 @@ jobs:
             git checkout main
             git branch -D "$BRANCH" || true
           done
-          
-
