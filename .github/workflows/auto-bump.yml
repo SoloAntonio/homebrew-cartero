@@ -2,7 +2,7 @@ name: Auto Bump Cask Versions
 
 on:
   schedule:
-    - cron: '0 12 * * *'  # Runs daily at 12:00 UTC
+    - cron: '0 12 * * *'
   workflow_dispatch:
     inputs:
       tap_name:
@@ -32,20 +32,12 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
           fetch-depth: 0
 
-      - name: Setup Homebrew
+      - name: Setup Homebrew tap
         run: |
-          # Install Homebrew if not present
-          if ! command -v brew &> /dev/null; then
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            echo "$(/opt/homebrew/bin/brew shellenv)" >> $GITHUB_ENV
-            source $GITHUB_ENV
-          fi
-          
           echo "Using tap: ${{ env.TAP_NAME }} (${{ env.TAP_URL }})"
           brew tap ${{ env.TAP_NAME }} ${{ env.TAP_URL }}
           brew update
           brew developer on
-          brew install gh jq curl
 
       - name: Authenticate GitHub CLI
         env:
@@ -56,7 +48,6 @@ jobs:
             exit 1
           fi
           gh auth status || gh auth login --with-token <<< "$GH_TOKEN"
-          gh api user --jq '"Authenticated as \(.login)"'
 
       - name: Find casks to check
         id: find_casks
@@ -79,17 +70,14 @@ jobs:
           CASKS: ${{ steps.find_casks.outputs.casks }}
         shell: bash
         run: |
-          set -euo pipefail  # Enable strict mode
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+
           echo "$CASKS" | jq -r '.[]' > cask_list.txt
 
           while IFS= read -r CASK_NAME; do
-            echo "::group::Processing: $CASK_NAME"
+            echo "Processing: $CASK_NAME"
             CASK_PATH="Casks/$CASK_NAME.rb"
-
-            if [ ! -f "$CASK_PATH" ]; then
-              echo "::warning::Cask file not found: $CASK_PATH"
-              continue
-            fi
 
             CURRENT_VERSION=$(grep -m 1 'version "' "$CASK_PATH" | awk -F'"' '{print $2}')
             echo "Current version: $CURRENT_VERSION"
@@ -99,7 +87,6 @@ jobs:
 
             if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "$CURRENT_VERSION" ]; then
               echo "No update for $CASK_NAME (current: $CURRENT_VERSION, latest: $LATEST_VERSION)"
-              echo "::endgroup::"
               continue
             fi
 
@@ -111,7 +98,7 @@ jobs:
             URL_LINE=$(grep -m 1 '^[[:space:]]*url "' "$CASK_PATH") 
 
             # Extract the URL inside the quotes, remove trailing comma
-            URL_TEMPLATE=$(echo "$URL_LINE" | sed -E 's/^[[:space:]]*url "([^"]+)",?$/\1/')
+            URL_TEMPLATE=$(echo "$URL_LINE" | sed -E 's/^[[:space:]]*url "([^"]+)",$/\1/')
 
             # Replace version placeholder #{version} with actual LATEST_VERSION
             URL_TEMPLATE="${URL_TEMPLATE//\#\{version\}/$LATEST_VERSION}"
@@ -121,25 +108,10 @@ jobs:
             URL_X64="${URL_TEMPLATE//\#\{arch\}/x64}"
 
             echo "Downloading ARM binary from $URL_ARM"
-            if ! curl -L -f -o arm.dmg "$URL_ARM"; then
-              echo "::error::Failed to download ARM binary"
-              mv "$CASK_PATH.bak" "$CASK_PATH"
-              git checkout main
-              git branch -D "$BRANCH" || true
-              echo "::endgroup::"
-              continue
-            fi
+            curl -L -o arm.dmg "$URL_ARM"
 
             echo "Downloading Intel binary from $URL_X64"
-            if ! curl -L -f -o intel.dmg "$URL_X64"; then
-              echo "::error::Failed to download Intel binary"
-              rm -f arm.dmg
-              mv "$CASK_PATH.bak" "$CASK_PATH"
-              git checkout main
-              git branch -D "$BRANCH" || true
-              echo "::endgroup::"
-              continue
-            fi
+            curl -L -o intel.dmg "$URL_X64"
 
             # Calculate SHA256 checksums
             ARM_SHA=$(shasum -a 256 arm.dmg | awk '{print $1}')
@@ -149,7 +121,7 @@ jobs:
             echo "Intel SHA256: $INTEL_SHA"
 
             # Clean up
-            rm -f arm.dmg intel.dmg
+            rm arm.dmg intel.dmg
 
             # Update cask file version
             sed -i '' -E "s/^[[:space:]]*version \"[^\"]+\"/  version \"$LATEST_VERSION\"/" "$CASK_PATH"
@@ -173,24 +145,23 @@ jobs:
               echo "PR created: $PR_URL"
               PR_NUMBER=$(basename "$PR_URL")
               
-              if gh pr view "$PR_NUMBER" --json mergeable | jq -e '.mergeable == "MERGEABLE"' >/dev/null; then
+              if gh pr view "$PR_NUMBER" --json mergeable | jq -e '.mergeable == true' >/dev/null; then
                 echo "Auto-merging PR #$PR_NUMBER"
                 gh pr merge "$PR_NUMBER" --auto --merge
               else
                 echo "PR #$PR_NUMBER is not auto-mergeable."
               fi
+
             else
-              echo "::error::Install failed. Reverting changes."
+              echo "Install failed. Reverting changes."
               mv "$CASK_PATH.bak" "$CASK_PATH"
               git checkout main
               git branch -D "$BRANCH" || true
-              echo "::endgroup::"
               continue
             fi
 
             git checkout main
             git branch -D "$BRANCH" || true
             git push origin --delete "$BRANCH" || true
-            echo "::endgroup::"
 
           done < cask_list.txt
