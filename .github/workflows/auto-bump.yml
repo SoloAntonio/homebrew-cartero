@@ -35,7 +35,9 @@ jobs:
       - name: Setup Homebrew tap
         run: |
           echo "Using tap: ${{ env.TAP_NAME }} (${{ env.TAP_URL }})"
-          brew tap "${{ env.TAP_NAME }}" "${{ env.TAP_URL }}"
+          brew untap ${{ env.TAP_NAME }} || true
+          brew tap ${{ env.TAP_NAME }} ${{ env.TAP_URL }}
+          brew update
           brew developer on
 
       - name: Authenticate GitHub CLI
@@ -56,11 +58,11 @@ jobs:
 
           if [ -n "${{ github.event.inputs.casks }}" ]; then
             echo "Checking specified casks: ${{ github.event.inputs.casks }}"
-            echo "casks=$(echo '${{ github.event.inputs.casks }}' | tr ' ' '\n' | jq -R . | jq -cs .)" >> $GITHUB_OUTPUT
+            echo "casks=$(echo '${{ github.event.inputs.casks }}' | tr ' ' '\n' | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
           else
-            CASKS=$(find Casks -name "*.rb" -exec basename {} .rb \;)
+            CASKS=$(find Casks -name "*.rb" -exec basename {} .rb \; | jq -R . | jq -cs .)
             echo "Found casks to check: $CASKS"
-            echo "casks=$(echo "$CASKS" | tr ' ' '\n' | jq -R . | jq -cs .)" >> $GITHUB_OUTPUT
+            echo "casks=$CASKS" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Process casks
@@ -93,40 +95,25 @@ jobs:
 
             cp "$CASK_PATH" "$CASK_PATH.bak"
 
-            # Fetch and capture SHA for ARM (native architecture on macos-latest)
             echo "Fetching cask for ARM..."
             ARM_FETCH=$(brew fetch --cask --force "$CASK_NAME" 2>&1)
             ARM_SHA=$(echo "$ARM_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
-            echo "$ARM_SHA"
 
-            # Fetch and capture SHA for Intel using Rosetta
             echo "Fetching cask for Intel (Rosetta)..."
             INTEL_FETCH=$(arch -x86_64 brew fetch --cask --force "$CASK_NAME" 2>&1)
             INTEL_SHA=$(echo "$INTEL_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
-            echo "$INTEL_SHA"
 
-            # Fallback if architecture-specific SHAs are not defined
             if [ -z "$ARM_SHA" ] || [ -z "$INTEL_SHA" ]; then
               UNIVERSAL_SHA=${ARM_SHA:-$INTEL_SHA}
               ARM_SHA=$UNIVERSAL_SHA
               INTEL_SHA=$UNIVERSAL_SHA
             fi
 
-            # Update version
-            sed -i '' "s/version \"[^\"]*\"/version \"$LATEST_VERSION\"/" "$CASK_PATH"
+            sed -i '' -E "s/^version\s+\"[^\"]+\"/version \"$LATEST_VERSION\"/" "$CASK_PATH"
+            sed -i '' -E "/sha256 arm:/,/sha256 intel:/c\\
+            sha256 arm:   \"$ARM_SHA\",\\\n  sha256 intel: \"$INTEL_SHA\"" "$CASK_PATH"
 
-            # Extract line number for SHA256 line
-            SHA_LINE=$(grep -n "sha256" "$CASK_PATH" | cut -d: -f1)
-
-            # Create a new SHA256 line with updated values
-            NEW_SHA_LINE="  sha256 arm:   \"$ARM_SHA\",
-         intel: \"$INTEL_SHA\""
-
-            # Replace the entire SHA256 section (2 lines)
-            sed -i '' "${SHA_LINE},$(($SHA_LINE+1))c\\
-            $NEW_SHA_LINE" "$CASK_PATH"
-
-            if brew install --cask "$CASK_NAME"; then
+            if brew install --cask "$CASK_NAME" && arch -x86_64 brew install --cask "$CASK_NAME"; then
               git add "$CASK_PATH"
               git commit -m "$CASK_NAME: Update to version $LATEST_VERSION"
               git push -u origin "$BRANCH"
@@ -154,7 +141,6 @@ jobs:
               git branch -D "$BRANCH"
             fi
 
-            # Cleanup
             git checkout main
             git branch -D "$BRANCH" || true
           done
