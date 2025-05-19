@@ -39,7 +39,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          echo "$GH_TOKEN"
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::GH_TOKEN is not set"
+            exit 1
+          fi
+          gh auth status || gh auth login --with-token <<< "$GH_TOKEN"
+          
       - name: Find casks to check
         id: find_casks
         run: |
@@ -106,9 +111,9 @@ jobs:
 
             # Update version and checksums in cask file - sed assumes specific format, adjust as needed
             sed -i '' -E \
-              -e "s/^version[[:space:]]+\"[^\"]+\"/version \"$LATEST_VERSION\"/" \
-              -e "s/sha256[[:space:]]+arm:[[:space:]]+\"[^\"]+\"/sha256 arm:   \"$ARM_SHA\"/" \
-              -e "s/sha256[[:space:]]+intel:[[:space:]]+\"[^\"]+\"/sha256 intel: \"$INTEL_SHA\"/" \
+              -e "s/version \"[^\"]+\"/version \"$LATEST_VERSION\"/" \
+              -e "s/sha256 arm:[[:space:]]*\"[^\"]+\"/sha256 arm:   \"$ARM_SHA\"/" \
+              -e "s/intel:[[:space:]]*\"[^\"]+\"/intel: \"$INTEL_SHA\"/" \
               "$CASK_PATH"
 
             if brew install --cask "$CASK_NAME"; then
