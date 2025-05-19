@@ -145,7 +145,4 @@ jobs:
             git checkout main
             git branch -D "$BRANCH" || true
           done
-<<<<<<<<< Temporary merge branch 1
 
-=========
->>>>>>>>> Temporary merge branch 2
