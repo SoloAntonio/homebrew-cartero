@@ -134,7 +134,7 @@ jobs:
             if brew install --cask "./$CASK_PATH"; then
               git add "$CASK_PATH"
               git commit -m "$CASK_NAME: Update to version $LATEST_VERSION"
-              git push -f -u origin "$BRANCH"
+              git push -u origin "$BRANCH"
 
               PR_BODY="Auto-bumped $CASK_NAME to $LATEST_VERSION"
               PR_URL=$(gh pr create --title "$CASK_NAME: Update to version $LATEST_VERSION" \
@@ -147,10 +147,12 @@ jobs:
               PR_NUMBER=$(basename "$PR_URL")
               if gh pr view "$PR_NUMBER" --json mergeable | jq -e '.mergeable == true' >/dev/null; then
                 echo "Auto-merging PR #$PR_NUMBER"
-                gh pr merge "$PR_NUMBER" --rebase
+                gh pr merge "$PR_NUMBER" --admin --merge --base main
               else
-                echo "PR #$PR_NUMBER is not mergeable"
+                echo "PR #$PR_NUMBER is not auto-mergeable, attempting admin merge with rebase"
+                gh pr merge "$PR_NUMBER" --admin --rebase --base main
               fi
+
             else
               echo "Install failed. Reverting changes."
               mv "$CASK_PATH.bak" "$CASK_PATH"
@@ -161,4 +163,6 @@ jobs:
 
             git checkout main
             git branch -D "$BRANCH" || true
+            git push origin --delete "$BRANCH" || true
+
           done < cask_list.txt
