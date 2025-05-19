@@ -56,7 +56,7 @@ jobs:
           else
             CASKS=$(find Casks -name "*.rb" -exec basename {} .rb \;)
             echo "Found casks to check: $CASKS"
-            echo "casks=$(echo "$CASKS" | jq -R . | jq -cs .)" >> $GITHUB_OUTPUT
+            echo "casks=$(echo "$CASKS" | tr ' ' '\n' | jq -R . | jq -cs .)" >> $GITHUB_OUTPUT
           fi
 
       - name: Process casks
@@ -145,3 +145,7 @@ jobs:
             git checkout main
             git branch -D "$BRANCH" || true
           done
+<<<<<<<<< Temporary merge branch 1
+
+=========
+>>>>>>>>> Temporary merge branch 2
