@@ -95,15 +95,15 @@ jobs:
             cp "$CASK_PATH" "$CASK_PATH.bak"
 
             echo "Fetching ARM..."
-            if ! ARM_FETCH=$(brew fetch --cask --force "$CASK_NAME" 2>&1); then
-              echo "ARM fetch failed for $CASK_NAME"
+            if ! ARM_FETCH=$(brew fetch --cask --force "$CASK_PATH" 2>&1); then
+              echo "ARM fetch failed for $CASK_PATH"
               continue
             fi
             ARM_SHA=$(echo "$ARM_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
 
             echo "Fetching Intel (Rosetta)..."
-            if ! INTEL_FETCH=$(arch -x86_64 brew fetch --cask --force "$CASK_NAME" 2>&1); then
-              echo "Intel fetch failed for $CASK_NAME"
+            if ! INTEL_FETCH=$(arch -x86_64 brew fetch --cask --force "$CASK_PATH" 2>&1); then
+              echo "Intel fetch failed for $CASK_PATH"
               continue
             fi
             INTEL_SHA=$(echo "$INTEL_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
@@ -118,7 +118,7 @@ jobs:
             sed -i '' -E "s/^(  sha256 arm:[[:space:]]+\")[a-f0-9]+\"/\1$ARM_SHA\"/" "$CASK_PATH"
             sed -i '' -E "s/^(         intel:[[:space:]]+\")[a-f0-9]+\"/\1$INTEL_SHA\"/" "$CASK_PATH"
 
-            echo "Installing local cask to verify: $CASK_NAME"
+            echo "Installing local cask to verify: $CASK_PATH"
             if brew install --cask "./$CASK_PATH"; then
               git add "$CASK_PATH"
               git commit -m "$CASK_NAME: Update to version $LATEST_VERSION"
