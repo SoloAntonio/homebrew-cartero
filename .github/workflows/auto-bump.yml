@@ -90,33 +90,45 @@ jobs:
               continue
             fi
 
+            # Extract first url line
+            URL_LINE=$(grep -m 1 '^url "' "$CASK_PATH")
+
+            # Extract URL inside quotes
+            URL_TEMPLATE=$(echo "$URL_LINE" | sed -E 's/^url "(.*)"$/\1/')
+
+            # Replace version placeholder #{version} with actual LATEST_VERSION
+            URL_TEMPLATE="${URL_TEMPLATE//\#\{version\}/$LATEST_VERSION}"
+
+            # Replace arch placeholder #{arch} for arm and x64
+            URL_ARM="${URL_TEMPLATE//\#\{arch\}/arm}"
+            URL_X64="${URL_TEMPLATE//\#\{arch\}/x64}"
+
+            echo "Downloading ARM binary from $URL_ARM"
+            curl -L -o arm.dmg "$URL_ARM"
+
+            echo "Downloading Intel binary from $URL_X64"
+            curl -L -o intel.dmg "$URL_X64"
+
+            # Calculate SHA256 checksums
+            ARM_SHA=$(shasum -a 256 arm.dmg | awk '{print $1}')
+            INTEL_SHA=$(shasum -a 256 intel.dmg | awk '{print $1}')
+
+            echo "ARM SHA256: $ARM_SHA"
+            echo "Intel SHA256: $INTEL_SHA"
+
+            # Clean up
+            rm arm.dmg intel.dmg
+
+            # Update cask file version
+            sed -i '' -E "s/^[[:space:]]*version \"[^\"]+\"/  version \"$LATEST_VERSION\"/" "$CASK_PATH"
+
+            # Update sha256 checksums for arm and intel
+            sed -i '' -E "s/^(  sha256 arm:[[:space:]]+\")[a-f0-9]+\"/\1$ARM_SHA\"/" "$CASK_PATH"
+            sed -i '' -E "s/^(         intel:[[:space:]]+\")[a-f0-9]+\"/\1$INTEL_SHA\"/" "$CASK_PATH"
+
             BRANCH="bump-$CASK_NAME-$LATEST_VERSION"
             git checkout -B "$BRANCH"
             cp "$CASK_PATH" "$CASK_PATH.bak"
-
-            echo "Fetching ARM..."
-            if ! ARM_FETCH=$(brew fetch --cask --file "$CASK_PATH" 2>&1); then
-              echo "ARM fetch failed for $CASK_PATH"
-              continue
-            fi
-            ARM_SHA=$(echo "$ARM_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
-
-            echo "Fetching Intel (Rosetta)..."
-            if ! INTEL_FETCH=$(arch -x86_64 brew fetch --cask --file "$CASK_PATH" 2>&1); then
-              echo "Intel fetch failed for $CASK_PATH"
-              continue
-            fi
-            INTEL_SHA=$(echo "$INTEL_FETCH" | grep "SHA256:" | tail -1 | awk '{print $2}')
-
-            if [ -z "$ARM_SHA" ] || [ -z "$INTEL_SHA" ]; then
-              UNIVERSAL_SHA=${ARM_SHA:-$INTEL_SHA}
-              ARM_SHA=$UNIVERSAL_SHA
-              INTEL_SHA=$UNIVERSAL_SHA
-            fi
-
-            sed -i '' -E "s/^[[:space:]]*version \"[^\"]+\"/  version \"$LATEST_VERSION\"/" "$CASK_PATH"
-            sed -i '' -E "s/^(  sha256 arm:[[:space:]]+\")[a-f0-9]+\"/\1$ARM_SHA\"/" "$CASK_PATH"
-            sed -i '' -E "s/^(         intel:[[:space:]]+\")[a-f0-9]+\"/\1$INTEL_SHA\"/" "$CASK_PATH"
 
             echo "Installing local cask to verify: $CASK_PATH"
             if brew install --cask "./$CASK_PATH"; then
