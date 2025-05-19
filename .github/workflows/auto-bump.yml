@@ -112,8 +112,7 @@ jobs:
             NEW_SHA_LINE="  sha256 arm:   \"$ARM_SHA\",\\n         intel: \"$INTEL_SHA\""
 
             # Replace the entire SHA256 section (2 lines)
-            sed -i '' "${SHA_LINE},$(($SHA_LINE+1))c\\
-            $NEW_SHA_LINE" "$CASK_PATH"
+            sed -i '' "${SHA_LINE},$(($SHA_LINE+1))c\\$NEW_SHA_LINE" "$CASK_PATH"
 
             if brew install --cask "$CASK_NAME"; then
               git add "$CASK_PATH"
@@ -147,3 +146,4 @@ jobs:
             git checkout main
             git branch -D "$BRANCH" || true
           done
+
