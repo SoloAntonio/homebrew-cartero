@@ -108,7 +108,7 @@ jobs:
               INTEL_SHA=$UNIVERSAL_SHA
             fi
 
-            sed -i '' -E "s/^version\s+\"[^\"]+\"/version \"$LATEST_VERSION\"/" "$CASK_PATH"
+            sed -i '' -E "s/^[[:space:]]*version \"[^\"]+\"/  version \"$LATEST_VERSION\"/" "$CASK_PATH"
             # Safely update only the `arm:` and `intel:` hashes within the `sha256` block
             sed -i '' -E "/^  sha256 arm:/s/(arm:[[:space:]]+\")[^\"]+\"/\1$ARM_SHA\"/" "$CASK_PATH"
             sed -i '' -E "/^ [[:space:]]+intel:/s/(intel:[[:space:]]+\")[^\"]+\"/\1$INTEL_SHA\"/" "$CASK_PATH"
