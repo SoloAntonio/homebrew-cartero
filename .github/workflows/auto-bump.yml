@@ -96,7 +96,7 @@ jobs:
 
             # Extract first url line
             URL_LINE=$(grep -m 1 '^[[:space:]]*url "' "$CASK_PATH") 
-            
+
             # Extract the URL inside the quotes, remove trailing comma
             URL_TEMPLATE=$(echo "$URL_LINE" | sed -E 's/^[[:space:]]*url "([^"]+)",$/\1/')
 
@@ -147,9 +147,9 @@ jobs:
               PR_NUMBER=$(basename "$PR_URL")
               if gh pr view "$PR_NUMBER" --json mergeable | jq -e '.mergeable == true' >/dev/null; then
                 echo "Auto-merging PR #$PR_NUMBER"
-                gh pr merge "$PR_NUMBER" --auto --merge
+                gh pr merge "$PR_NUMBER" --merge
               else
-                echo "PR #$PR_NUMBER is not auto-mergeable"
+                echo "PR #$PR_NUMBER is not mergeable"
               fi
             else
               echo "Install failed. Reverting changes."
