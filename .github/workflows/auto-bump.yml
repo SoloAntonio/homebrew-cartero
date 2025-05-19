@@ -79,10 +79,6 @@ jobs:
             echo "Processing: $CASK_NAME"
             CASK_PATH="Casks/$CASK_NAME.rb"
 
-            BRANCH="bump-$CASK_NAME-$LATEST_VERSION"
-            git checkout -B "$BRANCH"
-            cp "$CASK_PATH" "$CASK_PATH.bak"
-
             CURRENT_VERSION=$(grep -m 1 'version "' "$CASK_PATH" | awk -F'"' '{print $2}')
             echo "Current version: $CURRENT_VERSION"
 
@@ -93,6 +89,10 @@ jobs:
               echo "No update for $CASK_NAME (current: $CURRENT_VERSION, latest: $LATEST_VERSION)"
               continue
             fi
+
+            BRANCH="bump-$CASK_NAME-$LATEST_VERSION"
+            git checkout -B "$BRANCH"
+            cp "$CASK_PATH" "$CASK_PATH.bak"
 
             # Extract first url line
             URL_LINE=$(grep -m 1 '^[[:space:]]*url "' "$CASK_PATH") 
