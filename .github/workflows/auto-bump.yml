@@ -147,7 +147,7 @@ jobs:
               PR_NUMBER=$(basename "$PR_URL")
               if gh pr view "$PR_NUMBER" --json mergeable | jq -e '.mergeable == true' >/dev/null; then
                 echo "Auto-merging PR #$PR_NUMBER"
-                gh pr merge "$PR_NUMBER" --merge
+                gh pr merge "$PR_NUMBER" --rebase
               else
                 echo "PR #$PR_NUMBER is not mergeable"
               fi
