@@ -97,14 +97,14 @@ jobs:
             # Extract first url line
             URL_LINE=$(grep -m 1 '^url "' "$CASK_PATH")
 
-            # Extract URL inside quotes
-            URL_TEMPLATE=$(echo "$URL_LINE" | sed -E 's/^url "(.*)"$/\1/')
+            # Extract the URL inside the quotes, remove trailing comma
+            URL_TEMPLATE=$(echo "$URL_LINE" | sed -E 's/^[[:space:]]*url "([^"]+)",$/\1/')
 
             # Replace version placeholder #{version} with actual LATEST_VERSION
             URL_TEMPLATE="${URL_TEMPLATE//\#\{version\}/$LATEST_VERSION}"
 
             # Replace arch placeholder #{arch} for arm and x64
-            URL_ARM="${URL_TEMPLATE//\#\{arch\}/arm}"
+            URL_ARM="${URL_TEMPLATE//\#\{arch\}/arm64}"
             URL_X64="${URL_TEMPLATE//\#\{arch\}/x64}"
 
             echo "Downloading ARM binary from $URL_ARM"
