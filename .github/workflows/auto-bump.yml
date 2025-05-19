@@ -119,7 +119,7 @@ jobs:
             SHA_LINE=$(grep -n "sha256" "$CASK_PATH" | cut -d: -f1)
 
             # Create a new SHA256 line with updated values
-            NEW_SHA_LINE="  sha256 arm:   \"$ARM_SHA\",\\n         intel: \"$INTEL_SHA\""
+            NEW_SHA_LINE=$'  sha256 arm:   "'"$ARM_SHA"$"',\n         intel: "'"$INTEL_SHA"$'"'
 
             # Replace the entire SHA256 section (2 lines)
             sed -i '' "${SHA_LINE},$(($SHA_LINE+1))c\\
