@@ -26,8 +26,11 @@ jobs:
   auto-bump:
     runs-on: macos-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GH_TOKEN }}
+        fetch-depth: 0
 
       - name: Setup Homebrew tap
         run: |
@@ -35,16 +38,6 @@ jobs:
           brew tap "${{ env.TAP_NAME }}" "${{ env.TAP_URL }}"
           brew developer on
 
-      - name: Authenticate GitHub CLI
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::error::GH_TOKEN is not set"
-            exit 1
-          fi
-          gh auth status || gh auth login --with-token <<< "$GH_TOKEN"
-          
       - name: Find casks to check
         id: find_casks
         run: |
