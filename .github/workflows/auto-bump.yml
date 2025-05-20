@@ -70,10 +70,7 @@ jobs:
           CASKS: ${{ steps.find_casks.outputs.casks }}
         shell: bash
         run: |
-          #git config --global user.name "GitHub Action"
-          #git config --global user.email "action@github.com"
-
-          echo "$CASKS" | jq -r '.[]' > cask_list.txt
+          echo "$CASKS" | jq -r '.[]' | while read -r CASK_NAME; do
 
           while IFS= read -r CASK_NAME; do
             echo "::group::Processing: $CASK_NAME"
@@ -197,12 +194,32 @@ jobs:
               echo "PR created: $PR_URL"
               PR_NUMBER=$(basename "$PR_URL")
               
-              if gh pr view "$PR_NUMBER" --json mergeable | jq -e '.mergeable == "MERGEABLE"' >/dev/null; then
-                echo "Auto-merging PR #$PR_NUMBER"
-                gh pr merge "$PR_NUMBER" --auto --merge
-              else
-                echo "PR #$PR_NUMBER is not auto-mergeable."
-              fi
+              MAX_RETRIES=10
+
+              for ((i=1; i<=MAX_RETRIES; i++)); do
+                MERGEABLE=$(gh pr view "$PR_NUMBER" --json mergeable -q '.mergeable' 2>/dev/null || echo "null")
+
+                echo "Mergeable status attempt $i: $MERGEABLE"
+
+                if [ "$MERGEABLE" == "MERGEABLE" ]; then
+                  echo "PR is mergeable. Proceeding to auto-merge..."
+                  gh pr merge "$PR_NUMBER" --auto --merge --delete-branch
+                  break
+                elif [ "$MERGEABLE" == "CONFLICTING" ]; then
+                  echo "::warning::PR #$PR_NUMBER has merge conflicts. Skipping auto-merge."
+                  break
+                elif [ "$MERGEABLE" == "null" ] || [ -z "$MERGEABLE" ]; then
+                  if [ "$i" -lt "$MAX_RETRIES" ]; then
+                    echo "Mergeable status is not yet ready. Waiting 1 second..."
+                    sleep 1
+                  else
+                    echo "::warning::Mergeable status still null after $MAX_RETRIES attempts. Skipping auto-merge."
+                  fi
+                else
+                  echo "::warning::Unexpected mergeable status: $MERGEABLE"
+                  break
+                fi
+              done
 
             else
               echo "::error::Install failed. Reverting changes."
@@ -212,10 +229,7 @@ jobs:
               continue
             fi
 
-            git checkout main
-            # git branch -D "$BRANCH" || true
-            # git push origin --delete "$BRANCH" || true
             echo "::endgroup::"
 
-          done < cask_list.txt
+          done
 
