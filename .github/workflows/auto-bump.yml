@@ -94,21 +94,44 @@ jobs:
               continue
             fi
 
-            CURRENT_VERSION=$(grep -m 1 'version "' "$CASK_PATH" | awk -F'"' '{print $2}')
-            echo "Current version: $CURRENT_VERSION"
+            # Run brew livecheck and capture JSON
+            if ! LIVECHECK_JSON=$(brew livecheck --cask --quiet --full-name --json "$CASK_NAME" 2>/dev/null); then
+              echo "::warning::brew livecheck failed for $CASK_NAME. Skipping."
+              echo "::endgroup::"
+              continue
+            fi
 
-            LIVECHECK_JSON=$(brew livecheck --cask --quiet --newer-only --full-name --json "$CASK_NAME")
+            # Validate JSON structure
+            if ! echo "$LIVECHECK_JSON" | jq -e '.[0].version' >/dev/null 2>&1; then
+              echo "::warning::Invalid JSON structure from livecheck for $CASK_NAME. Skipping."
+              echo "::endgroup::"
+              continue
+            fi
+
+            # Extract fields
+            CURRENT_VERSION=$(echo "$LIVECHECK_JSON" | jq -r '.[0].version.current // empty')
             LATEST_VERSION=$(echo "$LIVECHECK_JSON" | jq -r '.[0].version.latest // empty')
+            IS_OUTDATED=$(echo "$LIVECHECK_JSON" | jq -r '.[0].outdated')
 
-            if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "$CURRENT_VERSION" ]; then
-              echo "No update for $CASK_NAME (current: $CURRENT_VERSION, latest: $LATEST_VERSION)"
+            if [ -z "$CURRENT_VERSION" ]; then
+              echo "::warning::Missing current version in livecheck result for $CASK_NAME. Skipping."
+              echo "::endgroup::"
+              continue
+            fi
+
+            echo "Current version: $CURRENT_VERSION"
+            echo "Latest version: $LATEST_VERSION"
+            echo "Outdated: $IS_OUTDATED"
+
+            # Skip if up to date
+            if [ "$IS_OUTDATED" != "true" ]; then
+              echo "No update for $CASK_NAME (outdated: $IS_OUTDATED)"
               echo "::endgroup::"
               continue
             fi
 
             BRANCH="bump-$CASK_NAME-$LATEST_VERSION"
             git checkout -B "$BRANCH"
-            cp "$CASK_PATH" "$CASK_PATH.bak"
 
             # Extract first url line
             URL_LINE=$(grep -m 1 '^[[:space:]]*url "' "$CASK_PATH") 
@@ -126,7 +149,6 @@ jobs:
             echo "Downloading ARM binary from $URL_ARM"
             if ! curl -L -f -o arm.dmg "$URL_ARM"; then
               echo "::error::Failed to download ARM binary"
-              mv "$CASK_PATH.bak" "$CASK_PATH"
               git checkout main
               git branch -D "$BRANCH" || true
               echo "::endgroup::"
@@ -137,7 +159,6 @@ jobs:
             if ! curl -L -f -o intel.dmg "$URL_X64"; then
               echo "::error::Failed to download Intel binary"
               rm -f arm.dmg
-              mv "$CASK_PATH.bak" "$CASK_PATH"
               git checkout main
               git branch -D "$BRANCH" || true
               echo "::endgroup::"
@@ -192,8 +213,8 @@ jobs:
             fi
 
             git checkout main
-            git branch -D "$BRANCH" || true
-            git push origin --delete "$BRANCH" || true
+            # git branch -D "$BRANCH" || true
+            # git push origin --delete "$BRANCH" || true
             echo "::endgroup::"
 
           done < cask_list.txt
