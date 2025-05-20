@@ -70,8 +70,8 @@ jobs:
           CASKS: ${{ steps.find_casks.outputs.casks }}
         shell: bash
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
+          #git config --global user.name "GitHub Action"
+          #git config --global user.email "action@github.com"
 
           echo "$CASKS" | jq -r '.[]' > cask_list.txt
 
@@ -101,7 +101,7 @@ jobs:
             # Extract fields
             CURRENT_VERSION=$(echo "$LIVECHECK_JSON" | jq -r '.[0].version.current // empty')
             LATEST_VERSION=$(echo "$LIVECHECK_JSON" | jq -r '.[0].version.latest // empty')
-            IS_OUTDATED=$(echo "$LIVECHECK_JSON" | jq -r '.[0].outdated')
+            IS_OUTDATED=$(echo "$LIVECHECK_JSON" | jq -r '.[0].version.outdated')
 
             if [ -z "$CURRENT_VERSION" ]; then
               echo "::warning::Missing current version in livecheck result for $CASK_NAME. Skipping."
