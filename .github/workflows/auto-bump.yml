@@ -72,7 +72,6 @@ jobs:
         run: |
           echo "$CASKS" | jq -r '.[]' | while read -r CASK_NAME; do
 
-          while IFS= read -r CASK_NAME; do
             echo "::group::Processing: $CASK_NAME"
             CASK_PATH="Casks/$CASK_NAME.rb"
 
@@ -82,7 +81,7 @@ jobs:
             fi
 
             # Run brew livecheck and capture JSON
-            if ! LIVECHECK_JSON=$(brew livecheck --tap soloantonio/cartero --cask --quiet --full-name --json "$CASK_NAME" 2>/dev/null); then
+            if ! LIVECHECK_JSON=$(brew livecheck --tap ${{ env.TAP_NAME }} --cask --quiet --full-name --json "$CASK_NAME" 2>/dev/null); then
               echo "::warning::brew livecheck failed for $CASK_NAME. Skipping."
               echo "::endgroup::"
               continue
@@ -102,17 +101,6 @@ jobs:
 
             if [ -z "$CURRENT_VERSION" ]; then
               echo "::warning::Missing current version in livecheck result for $CASK_NAME. Skipping."
-              echo "::endgroup::"
-              continue
-            fi
-
-            echo "Current version: $CURRENT_VERSION"
-            echo "Latest version: $LATEST_VERSION"
-            echo "Outdated: $IS_OUTDATED"
-
-            # Skip if up to date
-            if [ "$IS_OUTDATED" != "true" ]; then
-              echo "No update for $CASK_NAME (outdated: $IS_OUTDATED)"
               echo "::endgroup::"
               continue
             fi
