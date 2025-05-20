@@ -32,20 +32,12 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
           fetch-depth: 0
 
-      - name: Setup Homebrew
+      - name: Setup Homebrew tap
         run: |
-          # Install Homebrew if not present
-          if ! command -v brew &> /dev/null; then
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            echo "$(/opt/homebrew/bin/brew shellenv)" >> $GITHUB_ENV
-            source $GITHUB_ENV
-          fi
-          
           echo "Using tap: ${{ env.TAP_NAME }} (${{ env.TAP_URL }})"
           brew tap ${{ env.TAP_NAME }} ${{ env.TAP_URL }}
           brew update
           brew developer on
-          brew install gh jq curl
 
       - name: Authenticate GitHub CLI
         env:
@@ -56,7 +48,6 @@ jobs:
             exit 1
           fi
           gh auth status || gh auth login --with-token <<< "$GH_TOKEN"
-          gh api user --jq '"Authenticated as \(.login)"'
 
       - name: Find casks to check
         id: find_casks
@@ -79,7 +70,6 @@ jobs:
           CASKS: ${{ steps.find_casks.outputs.casks }}
         shell: bash
         run: |
-          set -euo pipefail  # Enable strict mode
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
 
@@ -130,6 +120,16 @@ jobs:
               continue
             fi
 
+            echo "Current version: $CURRENT_VERSION"
+            echo "Latest version: $LATEST_VERSION"
+            echo "Outdated: $IS_OUTDATED"
+
+            # Skip if up to date
+            if [ "$IS_OUTDATED" != "true" ]; then
+              echo "No update for $CASK_NAME (outdated: $IS_OUTDATED)"
+              continue
+            fi
+
             BRANCH="bump-$CASK_NAME-$LATEST_VERSION"
             git checkout -B "$BRANCH"
 
@@ -137,7 +137,7 @@ jobs:
             URL_LINE=$(grep -m 1 '^[[:space:]]*url "' "$CASK_PATH") 
 
             # Extract the URL inside the quotes, remove trailing comma
-            URL_TEMPLATE=$(echo "$URL_LINE" | sed -E 's/^[[:space:]]*url "([^"]+)",?$/\1/')
+            URL_TEMPLATE=$(echo "$URL_LINE" | sed -E 's/^[[:space:]]*url "([^"]+)",$/\1/')
 
             # Replace version placeholder #{version} with actual LATEST_VERSION
             URL_TEMPLATE="${URL_TEMPLATE//\#\{version\}/$LATEST_VERSION}"
@@ -197,15 +197,15 @@ jobs:
               echo "PR created: $PR_URL"
               PR_NUMBER=$(basename "$PR_URL")
               
-              if gh pr view "$PR_NUMBER" --json mergeable | jq -e '.mergeable == "MERGEABLE"' >/dev/null; then
+              if gh pr view "$PR_NUMBER" --json mergeable | jq -e '.mergeable == true' >/dev/null; then
                 echo "Auto-merging PR #$PR_NUMBER"
                 gh pr merge "$PR_NUMBER" --auto --merge
               else
                 echo "PR #$PR_NUMBER is not auto-mergeable."
               fi
+
             else
               echo "::error::Install failed. Reverting changes."
-              mv "$CASK_PATH.bak" "$CASK_PATH"
               git checkout main
               git branch -D "$BRANCH" || true
               echo "::endgroup::"
