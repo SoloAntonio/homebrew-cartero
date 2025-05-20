@@ -197,7 +197,7 @@ jobs:
               echo "PR created: $PR_URL"
               PR_NUMBER=$(basename "$PR_URL")
               
-              if gh pr view "$PR_NUMBER" --json mergeable | jq -e '.mergeable == true' >/dev/null; then
+              if gh pr view "$PR_NUMBER" --json mergeable | jq -e '.mergeable == MERGEABLE >/dev/null; then
                 echo "Auto-merging PR #$PR_NUMBER"
                 gh pr merge "$PR_NUMBER" --auto --merge
               else
