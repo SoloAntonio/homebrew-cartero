@@ -72,7 +72,7 @@ jobs:
         run: |
           echo "$CASKS" | jq -r '.[]' | while read -r CASK_NAME; do
 
-            echo "::group::Processing: $CASK_NAME $TAP_NAME"
+            echo "::group::Processing: $CASK_NAME"
             CASK_PATH="Casks/$CASK_NAME.rb"
 
             if [ ! -f "$CASK_PATH" ]; then
@@ -81,7 +81,8 @@ jobs:
             fi
 
             # Run brew livecheck and capture JSON
-            if ! LIVECHECK_JSON=$(brew livecheck --tap "$TAP_NAME"  --cask --quiet --full-name --json "$CASK_NAME" 2>/dev/null); then
+            LIVECHECK_JSON=$(brew livecheck --tap "$TAP_NAME" --cask --quiet --full-name --json "$CASK_NAME" 2>/dev/null)
+            if [ $? -ne 0 ] || [ -z "$LIVECHECK_JSON" ]; then
               echo "::warning::brew livecheck failed for $CASK_NAME. Skipping."
               echo "::endgroup::"
               continue
