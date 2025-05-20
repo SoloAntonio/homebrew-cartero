@@ -197,7 +197,7 @@ jobs:
                 elif [ "$MERGEABLE" == "CONFLICTING" ]; then
                   echo "::warning::PR #$PR_NUMBER has merge conflicts. Skipping auto-merge."
                   break
-                elif [ "$MERGEABLE" == "null" ] || [ -z "$MERGEABLE" ]; then
+                elif [ "$MERGEABLE" == "UNKNOWN" ] || [ -z "$MERGEABLE" ]; then
                   if [ "$i" -lt "$MAX_RETRIES" ]; then
                     echo "Mergeable status is not yet ready. Waiting 1 second..."
                     sleep 1
