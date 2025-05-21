@@ -36,7 +36,6 @@ jobs:
         run: |
           echo "Using tap: ${{ env.TAP_NAME }} (${{ env.TAP_URL }})"
           brew tap ${{ env.TAP_NAME }} ${{ env.TAP_URL }}
-          brew update
           brew developer on
 
       - name: Authenticate GitHub CLI
