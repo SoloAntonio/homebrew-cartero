@@ -97,7 +97,6 @@ jobs:
             # Extract fields
             CURRENT_VERSION=$(echo "$LIVECHECK_JSON" | jq -r '.[0].version.current // empty')
             LATEST_VERSION=$(echo "$LIVECHECK_JSON" | jq -r '.[0].version.latest // empty')
-            IS_OUTDATED=$(echo "$LIVECHECK_JSON" | jq -r '.[0].version.outdated')
 
             if [ -z "$CURRENT_VERSION" ]; then
               echo "::warning::Missing current version in livecheck result for $CASK_NAME. Skipping."
@@ -107,35 +106,37 @@ jobs:
 
             echo "Current version: $CURRENT_VERSION"
             echo "Latest version: $LATEST_VERSION"
-            echo "Outdated: $IS_OUTDATED"
 
             # Skip if up to date
-            if [ "$IS_OUTDATED" != "true" ]; then
-              echo "No update for $CASK_NAME (outdated: $IS_OUTDATED)"
+            if [ "$LATEST_VERSION" == "$CURRENT_VERSION" ]; then
+              echo "No update for $CASK_NAME ($CURRENT_VERSION → $LATEST_VERSION)"
               continue
             fi
 
             BRANCH="bump-$CASK_NAME-$LATEST_VERSION"
             git checkout -B "$BRANCH"
 
-            # Extract first url line
-            URL_LINE=$(grep -m 1 '^[[:space:]]*url "' "$CASK_PATH") 
+            # Extract architecture-specific URL templates
+            URL_ARM=$(awk '/on_arm/,/end/ { if ($1 == "url") print $2 }' "$CASK_PATH" | sed 's/"//g')
+            URL_X64=$(awk '/on_intel/,/end/ { if ($1 == "url") print $2 }' "$CASK_PATH" | sed 's/"//g')
 
-            # Extract the URL inside the quotes, remove trailing comma
-            URL_TEMPLATE=$(echo "$URL_LINE" | sed -E 's/^[[:space:]]*url "([^"]+)",$/\1/')
+            # Fall back to the main url if architecture-specific blocks are not found
+            if [ -z "$URL_ARM" ]; then
+              URL_ARM=$(awk '/^[[:space:]]*url "/ { print $2; exit }' "$CASK_PATH" | sed 's/"//g')
+            fi
 
-            # Replace version placeholder #{version} with actual LATEST_VERSION
-            URL_TEMPLATE="${URL_TEMPLATE//\#\{version\}/$LATEST_VERSION}"
+            if [ -z "$URL_X64" ]; then
+              URL_X64=$(awk '/^[[:space:]]*url "/ { print $2; exit }' "$CASK_PATH" | sed 's/"//g')
+            fi
 
-            # Replace arch placeholder #{arch} for arm and x64
-            URL_ARM="${URL_TEMPLATE//\#\{arch\}/arm64}"
-            URL_X64="${URL_TEMPLATE//\#\{arch\}/x64}"
+            # Replace placeholders
+            URL_ARM="${URL_ARM//\#\{version\}/$LATEST_VERSION}"
+            URL_X64="${URL_X64//\#\{version\}/$LATEST_VERSION}"
 
             echo "Downloading ARM binary from $URL_ARM"
             if ! curl -L -f -o arm.dmg "$URL_ARM"; then
               echo "::error::Failed to download ARM binary"
-              git checkout main
-              git branch -D "$BRANCH" || true
+              rm -f arm.dmg
               echo "::endgroup::"
               continue
             fi
@@ -143,9 +144,7 @@ jobs:
             echo "Downloading Intel binary from $URL_X64"
             if ! curl -L -f -o intel.dmg "$URL_X64"; then
               echo "::error::Failed to download Intel binary"
-              rm -f arm.dmg
-              git checkout main
-              git branch -D "$BRANCH" || true
+              rm -f intel.dmg
               echo "::endgroup::"
               continue
             fi
@@ -164,8 +163,8 @@ jobs:
             sed -i '' -E "s/^[[:space:]]*version \"[^\"]+\"/  version \"$LATEST_VERSION\"/" "$CASK_PATH"
 
             # Update sha256 checksums for arm and intel
-            sed -i '' -E "s/^(  sha256 arm:[[:space:]]+\")[a-f0-9]+\"/\1$ARM_SHA\"/" "$CASK_PATH"
-            sed -i '' -E "s/^(         intel:[[:space:]]+\")[a-f0-9]+\"/\1$INTEL_SHA\"/" "$CASK_PATH"
+            sed -i '' -E "/on_arm/,/end/ s/sha256 \".*\"/  sha256 \"$ARM_SHA\"/" "$CASK_PATH"
+            sed -i '' -E "/on_intel/,/end/ s/sha256 \".*\"/  sha256 \"$INTEL_SHA\"/" "$CASK_PATH"
 
             echo "Installing local cask to verify: $CASK_PATH"
             if brew install --cask "./$CASK_PATH"; then
