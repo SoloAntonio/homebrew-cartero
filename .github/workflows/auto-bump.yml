@@ -35,9 +35,9 @@ jobs:
       - name: Setup Homebrew tap
         run: |
           echo "Using tap: ${{ env.TAP_NAME }} (${{ env.TAP_URL }})"
-          brew livecheck --cask firefox
-          brew tap ${{ env.TAP_NAME }} ${{ env.TAP_URL }}
           brew developer on
+          brew info firefox
+          brew tap ${{ env.TAP_NAME }} ${{ env.TAP_URL }}
 
       - name: Authenticate GitHub CLI
         env:
@@ -52,9 +52,6 @@ jobs:
       - name: Find casks to check
         id: find_casks
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-
           if [ -n "${{ github.event.inputs.casks }}" ]; then
             echo "Checking specified casks: ${{ github.event.inputs.casks }}"
             echo "casks=$(echo '${{ github.event.inputs.casks }}' | tr ' ' '\n' | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
