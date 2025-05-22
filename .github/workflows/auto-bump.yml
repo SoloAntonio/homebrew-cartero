@@ -35,6 +35,7 @@ jobs:
       - name: Setup Homebrew tap
         run: |
           echo "Using tap: ${{ env.TAP_NAME }} (${{ env.TAP_URL }})"
+          brew help >/dev/null
           brew tap ${{ env.TAP_NAME }} ${{ env.TAP_URL }}
           brew developer on
 
