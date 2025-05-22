@@ -85,7 +85,7 @@ jobs:
             while [ "$ATTEMPT" -le "$MAX_RETRIES" ]; do
               echo "Attempt $ATTEMPT: Running brew livecheck for $CASK_NAME..."
               
-              LIVECHECK_JSON=$(brew livecheck --cask "$CASK_NAME" --quiet --full-name --json --debug)
+              LIVECHECK_JSON=$(brew livecheck --cask "$CASK_NAME" --quiet --full-name --json)
 
               # Check if the result is not empty and not equal to an empty array
               if [ -n "$LIVECHECK_JSON" ] && [ "$LIVECHECK_JSON" != "[]" ]; then
