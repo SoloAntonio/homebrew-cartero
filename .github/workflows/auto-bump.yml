@@ -36,7 +36,6 @@ jobs:
         run: |
           echo "Using tap: ${{ env.TAP_NAME }} (${{ env.TAP_URL }})"
           brew developer on
-          brew livecheck --cask firefox
           brew tap ${{ env.TAP_NAME }} ${{ env.TAP_URL }}
 
       - name: Authenticate GitHub CLI
@@ -70,6 +69,7 @@ jobs:
           echo "$CASKS" | jq -r '.[]' | while read -r CASK_NAME; do
 
             echo "::group::Processing: $CASK_NAME"
+            brew info "$CASK_NAME"
 
             CASK_PATH="Casks/$CASK_NAME.rb"
 
@@ -85,7 +85,7 @@ jobs:
             while [ "$ATTEMPT" -le "$MAX_RETRIES" ]; do
               echo "Attempt $ATTEMPT: Running brew livecheck for $CASK_NAME..."
               
-              LIVECHECK_JSON=$(brew livecheck --cask "$CASK_NAME" --quiet --full-name --json 2>/dev/null)
+              LIVECHECK_JSON=$(brew livecheck --cask "$CASK_NAME" --quiet --full-name --json --debug)
 
               # Check if the result is not empty and not equal to an empty array
               if [ -n "$LIVECHECK_JSON" ] && [ "$LIVECHECK_JSON" != "[]" ]; then
