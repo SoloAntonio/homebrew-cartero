@@ -81,7 +81,7 @@ jobs:
             MAX_RETRIES=5
             RETRY_DELAY=1
             ATTEMPT=1
-
+            set +e
             while [ "$ATTEMPT" -le "$MAX_RETRIES" ]; do
               echo "Attempt $ATTEMPT: Running brew livecheck for $CASK_NAME..."
               
