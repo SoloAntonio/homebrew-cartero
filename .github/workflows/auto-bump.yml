@@ -80,7 +80,7 @@ jobs:
             fi
 
             # Run brew livecheck and capture JSON
-            LIVECHECK_JSON=$(brew livecheck --cask --quiet --full-name --json "$CASK_NAME" 2>/dev/null)
+            LIVECHECK_JSON=$(brew livecheck --tap "$TAP_URL" --cask --quiet --full-name --json "$CASK_NAME" 2>/dev/null)
             if [ $? -ne 0 ] || [ -z "$LIVECHECK_JSON" ]; then
               echo "::warning::brew livecheck failed for $CASK_NAME. Skipping."
               echo "::endgroup::"
@@ -104,8 +104,8 @@ jobs:
               continue
             fi
 
-            echo "Current version: $CURRENT_VERSION"
-            echo "Latest version: $LATEST_VERSION"
+            echo "📦 Current: $CURRENT_VERSION"
+            echo "⬆️  Latest:  $LATEST_VERSION"
 
             # Skip if up to date
             if [ "$LATEST_VERSION" == "$CURRENT_VERSION" ]; then
@@ -117,8 +117,8 @@ jobs:
             git checkout -B "$BRANCH"
 
             # Extract architecture-specific URL templates
-            URL_ARM=$(awk '/on_arm/,/end/ { if ($1 == "url") print $2 }' "$CASK_PATH" | sed 's/"//g')
-            URL_X64=$(awk '/on_intel/,/end/ { if ($1 == "url") print $2 }' "$CASK_PATH" | sed 's/"//g')
+            URL_ARM=$(awk '/on_arm/,/end/ { if ($1 == "url") { gsub(/",$/,"",$2); print $2 } }' "$CASK_PATH" | sed 's/"//g')
+            URL_X64=$(awk '/on_intel/,/end/ { if ($1 == "url") { gsub(/",$/,"",$2); print $2 } }' "$CASK_PATH" | sed 's/"//g')
 
             # Fall back to the main url if architecture-specific blocks are not found
             if [ -z "$URL_ARM" ]; then
