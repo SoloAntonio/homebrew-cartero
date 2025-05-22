@@ -80,7 +80,7 @@ jobs:
             fi
 
             # Run brew livecheck and capture JSON
-            LIVECHECK_JSON=$(brew livecheck --tap "$TAP_URL" --cask --quiet --full-name --json "$CASK_NAME" 2>/dev/null)
+            LIVECHECK_JSON=$(brew livecheck --tap "$TAP_URL" --cask "$CASK_PATH" --quiet --full-name --json 2>/dev/null)
             if [ $? -ne 0 ] || [ -z "$LIVECHECK_JSON" ]; then
               echo "::warning::brew livecheck failed for $CASK_NAME. Skipping."
               echo "::endgroup::"
