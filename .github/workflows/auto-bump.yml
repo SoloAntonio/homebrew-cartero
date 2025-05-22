@@ -67,9 +67,12 @@ jobs:
           CASKS: ${{ steps.find_casks.outputs.casks }}
         shell: bash
         run: |
+          set -ex
           echo "$CASKS" | jq -r '.[]' | while read -r CASK_NAME; do
 
             echo "::group::Processing: $CASK_NAME"
+            trap 'echo "::error::Failed while processing $CASK_NAME at line $LINENO"' ERR
+
             CASK_PATH="Casks/$CASK_NAME.rb"
 
             if [ ! -f "$CASK_PATH" ]; then
