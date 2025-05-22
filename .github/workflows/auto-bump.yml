@@ -69,7 +69,7 @@ jobs:
           echo "$CASKS" | jq -r '.[]' | while read -r CASK_NAME; do
 
             echo "::group::Processing: $CASK_NAME"
-            brew info "$CASK_NAME"
+            brew livecheck --cask "$CASK_NAME" --debug
 
             CASK_PATH="Casks/$CASK_NAME.rb"
 
