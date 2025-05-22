@@ -80,12 +80,30 @@ jobs:
               continue
             fi
 
-            # Run brew livecheck and capture JSON
-            LIVECHECK_JSON=$(brew livecheck --cask "$CASK_NAME" --quiet --full-name --json)
-            if [ $? -ne 0 ] || [ -z "$LIVECHECK_JSON" ]; then
-              echo "::warning::brew livecheck failed for $CASK_NAME. Skipping."
-              echo "::endgroup::"
-              continue
+            MAX_RETRIES=5
+            RETRY_DELAY=1
+            ATTEMPT=1
+
+            while [ "$ATTEMPT" -le "$MAX_RETRIES" ]; do
+              echo "Attempt $ATTEMPT: Running brew livecheck for $CASK_NAME..."
+              
+              LIVECHECK_JSON=$(brew livecheck --cask "$CASK_NAME" --quiet --full-name --json 2>/dev/null)
+
+              # Check if the result is not empty and not equal to an empty array
+              if [ -n "$LIVECHECK_JSON" ] && [ "$LIVECHECK_JSON" != "[]" ]; then
+                echo "Livecheck succeeded."
+                break
+              else
+                echo "Livecheck failed or returned empty. Retrying in $RETRY_DELAY seconds..."
+                sleep "$RETRY_DELAY"
+                ATTEMPT=$((ATTEMPT + 1))
+              fi
+            done
+
+            # Optionally, check if still empty after retries
+            if [ -z "$LIVECHECK_JSON" ] || [ "$LIVECHECK_JSON" = "[]" ]; then
+              echo "❌ Livecheck failed after $MAX_RETRIES attempts for $CASK_NAME"
+              exit 1
             fi
 
             # Validate JSON structure
