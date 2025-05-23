@@ -1,0 +1,62 @@
+name: Bump Cartero Cask
+
+on:
+  workflow_dispatch:
+    inputs:
+      tap_name:
+        description: 'Tap name (e.g. soloantonio/cartero)'
+        required: true
+      tap_url:
+        description: 'Tap GitHub URL (e.g. https://github.com/SoloAntonio/homebrew-cartero)'
+        required: true
+      cask_name:
+        description: 'Cask name (e.g. cartero)'
+        required: true
+      cask_url:
+        description: 'Cask release base URL (e.g. https://github.com/danirod/cartero)'
+        required: true
+
+  schedule:
+    - cron: '0 */4 * * *'
+
+jobs:
+  bump:
+    runs-on: macos-latest
+
+    steps:
+      - name: Set default inputs for scheduled run
+        if: github.event_name == 'schedule'
+        run: |
+          echo "tap_name=soloantonio/cartero" >> $GITHUB_ENV
+          echo "tap_url=https://github.com/SoloAntonio/homebrew-cartero" >> $GITHUB_ENV
+          echo "cask_name=cartero" >> $GITHUB_ENV
+          echo "cask_url=https://github.com/danirod/cartero" >> $GITHUB_ENV
+
+      - name: Set inputs for manual run
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "tap_name=${{ github.event.inputs.tap_name }}" >> $GITHUB_ENV
+          echo "tap_url=${{ github.event.inputs.tap_url }}" >> $GITHUB_ENV
+          echo "cask_name=${{ github.event.inputs.cask_name }}" >> $GITHUB_ENV
+          echo "cask_url=${{ github.event.inputs.cask_url }}" >> $GITHUB_ENV
+
+      - name: Clone tap repo
+        run: |
+          git clone "$tap_url" tap
+          cd tap
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Set up Rosetta for Intel emulation
+        if: runner.arch == 'arm64'
+        run: |
+          /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+
+      - name: Run bump script
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          cask_url: ${{ env.cask_url }}
+        run: |
+          cd tap
+          chmod +x ./scripts/bump-cask.sh
+          ./scripts/bump-cask.sh "$cask_name" "$tap_name"

@@ -9,10 +9,6 @@ on:
         description: 'Tap name (e.g., SoloAntonio/cartero)'
         required: false
         default: 'soloantonio/cartero'
-      tap_url:
-        description: 'Tap URL'
-        required: false
-        default: 'https://github.com/SoloAntonio/homebrew-cartero'
       casks:
         description: 'Cask names to check (space separated, leave empty for all)'
         required: false
@@ -20,7 +16,6 @@ on:
 
 env:
   TAP_NAME: ${{ github.event.inputs.tap_name || 'soloantonio/cartero' }}
-  TAP_URL: ${{ github.event.inputs.tap_url || 'https://github.com/SoloAntonio/homebrew-cartero' }}
 
 jobs:
   auto-bump:
@@ -34,9 +29,9 @@ jobs:
 
       - name: Setup Homebrew tap
         run: |
-          echo "Using tap: ${{ env.TAP_NAME }} (${{ env.TAP_URL }})"
+          echo "Using tap: ${{ env.TAP_NAME }}"
           brew developer on
-          brew tap ${{ env.TAP_NAME }} ${{ env.TAP_URL }}
+          brew tap ${{ env.TAP_NAME }}
 
       - name: Authenticate GitHub CLI
         env:
