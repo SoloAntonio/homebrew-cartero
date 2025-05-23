@@ -63,6 +63,7 @@ jobs:
       - name: Process casks
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GH_TOKEN }}   
           CASKS: ${{ steps.find_casks.outputs.casks }}
         shell: bash
         run: |
