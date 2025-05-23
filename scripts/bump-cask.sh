@@ -42,7 +42,18 @@ echo "🧪 Testing ARM64 install..."
 arch -arm64 brew install --cask --no-quarantine "$CASK_PATH" || { echo "❌ ARM install failed"; exit 1; }
 
 echo "🧪 Testing Intel install..."
-arch -x86_64 brew install --cask --no-quarantine "$CASK_PATH" || { echo "❌ Intel install failed"; exit 1; }
+if [[ -n "${CI:-}" ]]; then
+  # In CI, install Intel Homebrew if needed
+  if [[ ! -f "/usr/local/bin/brew" ]]; then
+    echo "Installing Intel Homebrew to /usr/local..."
+    arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
+  fi
+  # Use Intel Homebrew
+  arch -x86_64 /usr/local/bin/brew install --cask --no-quarantine "$CASK_PATH" || { echo "❌ Intel install failed"; exit 1; }
+else
+  # Local environment
+  arch -x86_64 brew install --cask --no-quarantine "$CASK_PATH" || { echo "❌ Intel install failed"; exit 1; }
+fi
 
 BRANCH="bump-${CASK_NAME}-${LATEST_VERSION}"
 git checkout -b "$BRANCH"
