@@ -9,7 +9,7 @@ SHA_FILE="SHA256SUMS"
 LATEST_VERSION=$(curl -sL "$cask_url/releases/latest" | grep -oE '/tag/v[0-9.]+' | head -n1 | sed 's|/tag/v||')
 echo "🔍 Latest version: $LATEST_VERSION"
 
-CURRENT_VERSION=$(grep -oE 'version\s+"[^"]+"' "$CASK_PATH" | sed -E 's/version\s+"(.+)"/\1/')
+CURRENT_VERSION=$(grep -oE 'version\s+"[^"]+"' "$CASK_PATH" | head -1 | cut -d'"' -f2)
 echo "📦 Current cask version: $CURRENT_VERSION"
 
 if [[ "$CURRENT_VERSION" == "$LATEST_VERSION" ]]; then
