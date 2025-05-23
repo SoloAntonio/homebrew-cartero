@@ -39,9 +39,13 @@ sed -i.bak \
 rm "${CASK_PATH}.bak"
 
 echo "🧪 Testing ARM64 install..."
+# Uninstall first if already installed
+arch -arm64 brew uninstall --cask "$CASK_NAME" 2>/dev/null || true
 arch -arm64 brew install --cask --no-quarantine "$CASK_PATH" || { echo "❌ ARM install failed"; exit 1; }
 
 echo "🧪 Testing Intel install..."
+# Uninstall ARM version before installing Intel version
+arch -arm64 brew uninstall --cask "$CASK_NAME" || true
 if [[ -n "${CI:-}" ]]; then
   # In CI, install Intel Homebrew if needed
   if [[ ! -f "/usr/local/bin/brew" ]]; then
