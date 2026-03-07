@@ -179,8 +179,15 @@ jobs:
             sed -i '' -E "/on_arm/,/end/ s/sha256 \".*\"/  sha256 \"$ARM_SHA\"/" "$CASK_PATH"
             sed -i '' -E "/on_intel/,/end/ s/sha256 \".*\"/  sha256 \"$INTEL_SHA\"/" "$CASK_PATH"
 
-            echo "Installing local cask to verify: $CASK_PATH"
-            if brew install --cask "./$CASK_PATH"; then
+            # Create local tap for verification
+            LOCAL_TAP="local/cartero-test"
+            brew tap-new "$LOCAL_TAP"
+            LOCAL_TAP_DIR="$(brew --repository)/Library/Taps/local/homebrew-cartero-test/Casks"
+            mkdir -p "$LOCAL_TAP_DIR"
+            cp "$CASK_PATH" "$LOCAL_TAP_DIR/"
+
+            echo "Installing updated cask to verify: $CASK_NAME from local tap"
+            if brew install --cask "$CASK_NAME"; then
               git add "$CASK_PATH"
               git commit -m "$CASK_NAME: Update to version $LATEST_VERSION"
               git push -u origin "$BRANCH"
