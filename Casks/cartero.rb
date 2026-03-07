@@ -1,14 +1,14 @@
 cask "cartero" do
-  version "0.2.2"
+  version "25.0"
 
   on_arm do
-      sha256 "fae6e3f90b85be2ef83206bca381d0f885f2b862340d7784ff3084ee407d0726"
+          sha256 "e2e706a62821e699118a860a8248138f079bc4ca7e21b4512f8e1a89b73d8993"
     url "https://github.com/danirod/cartero/releases/download/v#{version}/Cartero-#{version}-macOS-arm64.dmg",
         verified: "github.com/danirod/cartero/"
   end
 
   on_intel do
-      sha256 "a61c87828d1786b928ee0148a3a2d2b188c8cc9202d4745f475e437452a4b45f"
+          sha256 "5b27f4b2161f4f8a26a706941bfc612f6128f38cafcdc0dcafe407ed57582646"
     url "https://github.com/danirod/cartero/releases/download/v#{version}/Cartero-#{version}-macOS-x64.dmg",
         verified: "github.com/danirod/cartero/"
   end
