@@ -187,7 +187,7 @@ jobs:
             cp "$CASK_PATH" "$LOCAL_TAP_DIR/"
 
             echo "Installing updated cask to verify: $CASK_NAME from local tap"
-            if brew install --cask "$CASK_NAME"; then
+            if brew install --cask "$LOCAL_TAP/$CASK_NAME"; then
               git add "$CASK_PATH"
               git commit -m "$CASK_NAME: Update to version $LATEST_VERSION"
               git push -u origin "$BRANCH"
