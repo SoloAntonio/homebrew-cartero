@@ -74,25 +74,15 @@ jobs:
               continue
             fi
 
-            MAX_RETRIES=5
-            RETRY_DELAY=1
-            ATTEMPT=1
-            set +e
-            while [ "$ATTEMPT" -le "$MAX_RETRIES" ]; do
-              echo "Attempt $ATTEMPT: Running brew livecheck for $CASK_NAME..."
-              
-              LIVECHECK_JSON=$(brew livecheck --cask "$CASK_NAME" --quiet --full-name --json)
+            LIVECHECK_JSON=$(brew livecheck --cask "$CASK_NAME" --quiet --full-name --json)
 
-              # Check if the result is not empty and not equal to an empty array
-              if [ -n "$LIVECHECK_JSON" ] && [ "$LIVECHECK_JSON" != "[]" ]; then
-                echo "Livecheck succeeded."
-                break
-              else
-                echo "Livecheck failed or returned empty. Retrying in $RETRY_DELAY seconds..."
-                sleep "$RETRY_DELAY"
-                ATTEMPT=$((ATTEMPT + 1))
-              fi
-            done
+            # Check if the result is not empty and not equal to an empty array
+            if [ -n "$LIVECHECK_JSON" ] && [ "$LIVECHECK_JSON" != "[]" ]; then
+              echo "Livecheck succeeded."
+              break
+            else
+              echo "Livecheck failed or returned empty."
+            fi
 
             # Optionally, check if still empty after retries
             if [ -z "$LIVECHECK_JSON" ] || [ "$LIVECHECK_JSON" = "[]" ]; then
@@ -179,8 +169,15 @@ jobs:
             sed -i '' -E "/on_arm/,/end/ s/sha256 \".*\"/  sha256 \"$ARM_SHA\"/" "$CASK_PATH"
             sed -i '' -E "/on_intel/,/end/ s/sha256 \".*\"/  sha256 \"$INTEL_SHA\"/" "$CASK_PATH"
 
-            echo "Installing local cask to verify: $CASK_PATH"
-            if brew install --cask "./$CASK_PATH"; then
+            # Create local tap for verification
+            LOCAL_TAP="local/cartero-test"
+            brew tap-new "$LOCAL_TAP"
+            LOCAL_TAP_DIR="$(brew --repository)/Library/Taps/local/homebrew-cartero-test/Casks"
+            mkdir -p "$LOCAL_TAP_DIR"
+            cp "$CASK_PATH" "$LOCAL_TAP_DIR/"
+
+            echo "Installing updated cask to verify: $CASK_NAME from local tap"
+            if brew install --cask "$CASK_NAME"; then
               git add "$CASK_PATH"
               git commit -m "$CASK_NAME: Update to version $LATEST_VERSION"
               git push -u origin "$BRANCH"
