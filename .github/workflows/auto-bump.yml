@@ -22,10 +22,15 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
 
       - name: Setup Homebrew tap
         run: |
@@ -35,7 +40,7 @@ jobs:
 
       - name: Authenticate GitHub CLI
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::error::GH_TOKEN is not set"
@@ -57,8 +62,8 @@ jobs:
 
       - name: Process casks
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GH_TOKEN }}   
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}   
           CASKS: ${{ steps.find_casks.outputs.casks }}
         shell: bash
         run: |
@@ -239,4 +244,3 @@ jobs:
             echo "::endgroup::"
 
           done
-
