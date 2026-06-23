@@ -4,14 +4,8 @@ Cartero release version Brew Cask
 
 ## Usage
 
-To install Cartero from this cask, simply add this repository as a tap.
+To install Cartero from this cask, run the installation command using the fully-qualified name. This automatically handles the tap and trust verification required by Homebrew 6.0 in a single step:
 
 ```bash
-brew tap SoloAntonio/cartero
-```
-
-Now you can install any version hosted as cask with
-
-```bash
-brew install --cask cartero
+brew install --cask SoloAntonio/cartero/cartero
 ```
