@@ -36,7 +36,7 @@ jobs:
         run: |
           echo "Using tap: ${{ env.TAP_NAME }}"
           brew developer on
-          brew tap ${{ env.TAP_NAME }}
+          brew tap ${{ env.TAP_NAME }} && brew trust ${{ env.TAP_NAME }}
 
       - name: Authenticate GitHub CLI
         env:
