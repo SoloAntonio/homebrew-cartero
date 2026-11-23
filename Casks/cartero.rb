@@ -3,12 +3,12 @@ cask "cartero" do
 
   on_arm do
     sha256 "e13b6e09ccf66578099925ede11f784dc5836f069dd6eba0560c1bc3a7eafb2f"
-    url "https://github.com/danirod/cartero/releases/download/v#{version}/Cartero-#{version}-macOS-arm64.dmg",
+    url "https://github.com/danirod/cartero/releases/download/v#{version}/Cartero-#{version}-macOS-arm64.dmg"
   end
 
   on_intel do
     sha256 "90cb35be256bf2bdf7f9ccd7a7e5856de5125f1606d24732d612e3b9f4ef242c"
-    url "https://github.com/danirod/cartero/releases/download/v#{version}/Cartero-#{version}-macOS-x64.dmg",
+    url "https://github.com/danirod/cartero/releases/download/v#{version}/Cartero-#{version}-macOS-x64.dmg"
   end
 
   name "Cartero"
